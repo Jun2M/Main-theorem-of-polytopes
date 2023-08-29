@@ -29,11 +29,10 @@ lemma nontrivialdual_surj : ∀ f : nontrivialdual d, Function.Surjective f.val 
   rw [LinearMap.map_smulₛₗ, RingHom.id_apply, smul_eq_mul, div_mul_cancel x hv]
   done
 
-def Halfspace (d : ℕ) : Type := {H : Set (EuclideanSpace ℝ (Fin d)) // ∃ (f : nontrivialdual d) (α : ℝ), H = f.1 ⁻¹' {x | x ≤ α}}
+def Halfspace (f : nontrivialdual d) (α : ℝ) : Set (EuclideanSpace ℝ (Fin d)) := f.1 ⁻¹' {x | x ≤ α}
 
-lemma Halfspace_convex (H : Halfspace d) : Convex ℝ H.1 := by
-  rcases H with ⟨H, ⟨f, α, rfl⟩⟩
-  exact convex_halfspace_le (LinearMap.isLinear f.1) α
+lemma Halfspace_convex {f : nontrivialdual d} {α : ℝ} : Convex ℝ (Halfspace f α) := 
+  convex_halfspace_le (LinearMap.isLinear f.1) α
 
 def Vpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (_ : S.Finite) : Set (EuclideanSpace ℝ (Fin d)) := convexHull ℝ S
 
