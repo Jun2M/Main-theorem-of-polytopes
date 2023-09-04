@@ -55,18 +55,20 @@ def IsProperFace (F X : Set (EuclideanSpace ℝ (Fin d))) : Prop :=
 
 lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hXCV : Convex ℝ X)
   (hF : IsProperFace F X) : F ⊆ RelativeFrontier X := by
-  rcases hF with ⟨hFX, hF0, hFCV, hFCl, hFs, hFEx⟩
+  rcases hF with ⟨hFX, hF0, hFCV, hFCl, hFs, hFEx⟩ ; clear hFCl hXcl hXCV hF0 hFCV
   unfold RelativeFrontier
-  rcases hF0 with ⟨y, hyF⟩
+  intro y hyF
   have hyX : y ∈ X := Set.mem_of_subset_of_mem hFs hyF
   have hFss := (ssubset_of_subset_of_ne hFs hFX) ; clear hFs hFX
-  rcases (Set.nonempty_diff.mpr (HasSSubset.SSubset.not_subset hFss)) with ⟨x, hxX, hxF⟩
+  rcases (Set.nonempty_diff.mpr (HasSSubset.SSubset.not_subset hFss)) with ⟨x, hxX, hxF⟩ ;clear hFss
 
   let y'n : ℕ → EuclideanSpace ℝ (Fin d) := λ n => AffineMap.lineMap x y (1 + 1/(n+1):ℝ)
   let Sn : ℕ → Set (EuclideanSpace ℝ (Fin d)) := λ n => segment ℝ x (y'n n)
   
   have h1 : ∀ n, 0 < 1 / ((@Nat.cast ℝ _ n) + 1:ℝ) := 
     fun n:ℕ => (div_pos zero_lt_one (Nat.cast_add_one_pos n))
+
+  have hxy : x ≠ y := λ h => hxF (h ▸ hyF)
 
   have hySn : ∀ n, y ∈ Sn n := by
     intro n
@@ -76,13 +78,14 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
     rw [Set.mem_Icc]
     constructor
     · -- 1. tedious inequalities
-      sorry
+      suffices h2 : 0 < 1 / (1 + 1 / (↑n + 1:ℝ)) ∧ 1 / (1 + 1 / (↑n + 1:ℝ)) ≤ 1 from ⟨ le_of_lt h2.1, h2.2 ⟩
+      rw [← one_le_inv_iff, one_div, inv_inv, le_add_iff_nonneg_right, one_div, inv_nonneg]
+      exact le_of_lt (Nat.cast_add_one_pos n)
     · -- 2.
       rw [AffineMap.coe_lineMap, AffineMap.coe_lineMap]
       simp only [vsub_eq_sub, vadd_eq_add, add_sub_cancel, ne_eq]
       rw [one_div, smul_smul, inv_mul_cancel, one_smul, sub_add_cancel]
-      have : 0 < 1 + 1 / (↑n + 1:ℝ) := add_pos_of_nonneg_of_pos (by linarith) (h1 n)
-      exact (ne_of_lt this).symm
+      exact (ne_of_lt (add_pos_of_nonneg_of_pos (by linarith) (h1 n))).symm
 
   have hy'naff : ∀ n, y'n n ∈ affineSpan ℝ X := by
     intro n
@@ -90,21 +93,29 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
     rw [Set.insert_subset_iff]
     exact ⟨hxX, Set.singleton_subset_iff.mpr hyX⟩
     exact AffineMap.lineMap_mem_affineSpan_pair (1 + 1/(n+1):ℝ) x y
-    done
 
-  have hSnaff : ∀ n, Sn n ⊆ affineSpan ℝ X := by -- By definition 𝑆𝑛 ⊆ aff 𝑋
-    intro n ; clear hXcl hXCV hFCl hFEx hFss hxF hFCV hyF
-    exact Convex.segment_subset (AffineSubspace.convex (affineSpan ℝ X)) 
-      (mem_affineSpan ℝ hxX) (hy'naff n)
-  
-  have hy'nXc : ∀ n, y'n n ∉ X := by
+  -- have hSnaff : ∀ n, Sn n ⊆ affineSpan ℝ X := by -- not needed appearently?
+  --   intro n ; clear hXcl hXCV hFCl hFEx hFss hxF hFCV hyF
+  --   exact Convex.segment_subset (AffineSubspace.convex (affineSpan ℝ X)) 
+  --     (mem_affineSpan ℝ hxX) (hy'naff n)    
+
+  let y''n : ℕ → affineSpan ℝ X := λ n => ⟨y'n n, hy'naff n⟩
+
+  rw [← frontier_compl, IsOpen.frontier_eq (isOpen_compl_iff.mpr sorry), Set.mem_image]
+  -- subtype stuff
+  use ⟨ y, Set.mem_of_subset_of_mem (subset_affineSpan ℝ X) hyX ⟩
+  rw [Set.mem_diff _, Set.not_mem_compl_iff, Set.mem_setOf]
+  refine ⟨ ⟨ ?_, hyX ⟩, rfl ⟩
+
+  -- Finally using seq y'n to show y is a limit point of Xᶜ 
+  rw [mem_closure_iff_seq_limit]
+  use y''n
+  constructor
+  · -- 1. if y'n is in X then (as y is in a face) y'n & x are in F, contradiction
     intro n hn
-    refine hxF (hFEx hxX hn hyF ?_ ).1 
-    apply mem_openSegment_of_ne_left_right
-    · 
-      rintro rfl
-      exact hxF hyF
-    · 
+    refine hxF (hFEx hxX hn hyF ?_ ).1 ; clear hFEx hxX 
+    apply mem_openSegment_of_ne_left_right hxy
+    · -- y = y'n?
       intro hyy'n
       change (AffineMap.lineMap x y) (1 + 1 / (↑n + 1:ℝ)) = y at hyy'n
       rw [AffineMap.lineMap_apply x y (1 + 1 / (↑n + 1:ℝ))] at hyy'n
@@ -121,56 +132,26 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
         rw [vsub_eq_zero_iff_eq] at h
         exact hxF (h ▸ hyF)
     exact hySn n
-    done
+  clear hyF hxF hySn Sn
     
-    -- intro _ a ha ; clear hXcl hXCV hFCl hFEx hFss hxF hFCV hyF
-    -- rcases ((Set.mem_image _ _ _).mp ha) with ⟨r, _, rfl⟩ ; clear ha Sn
-    -- apply Set.mem_of_subset_of_mem _ (AffineMap.lineMap_mem_affineSpan_pair r x y)
-    -- apply affineSpan_mono ℝ
-    -- rw [Set.insert_subset_iff]
-    -- exact ⟨hxX, Set.singleton_subset_iff.mpr hyX⟩
-  
-  -- have hy'nXc : ∀ n, y'n n ∉ X := by
-  --   intro n hn 
-  --   have hy'nSn : Sn n = segment ℝ x (y'n n) := by
-  --     rw [segment_eq_image_lineMap] ; clear hXcl hXCV hFCl hFEx hFss hxF hFCV hyF hyX hxX hSnaff
-  --     ext z
-  --     constructor
-  --     · -- 1.
-  --       rintro ⟨r, hr, rfl⟩
-  --       use r / (1 + 1 / (↑n + 1))
-  --       constructor
-  --       · -- 1.
-  --         rw [Set.mem_Icc] ; clear Sn hn y'n x y F X  
-  --         rw [Set.mem_Icc] at hr
-  --         rcases hr with ⟨hr1, hr2⟩
-  --         constructor
-  --         · -- 1.
-  --           have := le_trans hr1 hr2
-  --           rw [div_nonneg_iff]
-  --           left
-  --           exact ⟨ by assumption, by assumption ⟩
-  --         · -- 2.
-  --           rw [div_le_one]
-  --           assumption
-  --           have : 0 < 1/(n + 1 :ℝ) := div_pos zero_lt_one (Nat.cast_add_one_pos n)
-  --           linarith
-  --           done
-  --         done
-  --       · -- 2.
-          
-  --         done
-  --       done
-  --     · -- 2.
-  --       sorry
-  --       done
-  --     -- aesop
-  --     done
+  · -- 2. good ol' epsilon delta argument
+    rw [Metric.tendsto_atTop]
+    intro ε hε
+    use max 1 ⌈dist x y / ε⌉₊
+    intro n hn
+    rw [ge_iff_le, max_le_iff] at hn
 
+    -- boring inequality manipulations
+    have hεn : dist x y / n ≤ ε := sorry
+    apply lt_of_lt_of_le ?_ hεn
 
-
+    rw [Subtype.dist_eq, dist_lineMap_right, sub_add_cancel', div_eq_inv_mul, mul_one, norm_neg, 
+      norm_inv, Real.norm_eq_abs, div_eq_inv_mul, mul_lt_mul_right (dist_pos.mpr hxy), inv_lt_inv]
+    <;> norm_cast
+    simp only [lt_add_iff_pos_right]
+    simp only [add_pos_iff, or_true]
+    linarith
     done
-
   done 
 
 
