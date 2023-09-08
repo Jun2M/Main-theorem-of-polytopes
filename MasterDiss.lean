@@ -1,6 +1,7 @@
 import Mathlib.Analysis.Convex.Caratheodory
 import Mathlib.Analysis.Convex.Independent
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
+import Mathlib.Analysis.Convex.Intrinsic
 
 
 variable {d : ℕ}
@@ -39,13 +40,11 @@ lemma Halfspace_convex (H_ : Halfspace d) : Convex ℝ H_.S := by
   rw [H_.h]
   exact convex_halfspace_le (LinearMap.isLinear H_.f.1) H_.α
 
-def RelativeInterior (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) := by
-  apply (·.val) '' (@interior (affineSpan ℝ X) _ _) 
-  exact setOf (λ x => x.val ∈ X)
+def RelativeInterior (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) :=
+  intrinsicInterior ℝ X
 
-def RelativeFrontier (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) := by
-  apply (·.val) '' (@frontier (affineSpan ℝ X) _ _) 
-  exact setOf (λ x => x.val ∈ X)
+def RelativeFrontier (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) :=
+  intrinsicFrontier ℝ X
 
 def IsFace (F X : Set (EuclideanSpace ℝ (Fin d))) : Prop := 
   Convex ℝ F ∧ IsClosed F ∧ IsExtreme ℝ X F
@@ -55,7 +54,7 @@ def IsProperFace (F X : Set (EuclideanSpace ℝ (Fin d))) : Prop :=
 
 lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hXCV : Convex ℝ X)
   (hF : IsProperFace F X) : F ⊆ RelativeFrontier X := by
-  rcases hF with ⟨hFX, hF0, hFCV, hFCl, hFs, hFEx⟩ ; clear hFCl hXcl hXCV hF0 hFCV
+  rcases hF with ⟨hFX, hF0, hFCV, hFCl, hFs, hFEx⟩ ; clear hFCl hXCV hF0 hFCV
   unfold RelativeFrontier
   intro y hyF
   have hyX : y ∈ X := Set.mem_of_subset_of_mem hFs hyF
@@ -101,11 +100,11 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
 
   let y''n : ℕ → affineSpan ℝ X := λ n => ⟨y'n n, hy'naff n⟩
 
-  rw [← frontier_compl, IsOpen.frontier_eq (isOpen_compl_iff.mpr sorry), Set.mem_image]
-  -- subtype stuff
-  use ⟨ y, Set.mem_of_subset_of_mem (subset_affineSpan ℝ X) hyX ⟩
-  rw [Set.mem_diff _, Set.not_mem_compl_iff, Set.mem_setOf]
-  refine ⟨ ⟨ ?_, hyX ⟩, rfl ⟩
+  rw [← closure_diff_intrinsicInterior, Set.mem_diff _, IsClosed.closure_eq hXcl, mem_intrinsicInterior] ; clear hXcl
+  refine ⟨ hyX, ?_ ⟩
+  rintro ⟨ y1, hy1, hy1y ⟩
+  revert hy1
+  rw [imp_false, ←Set.mem_compl_iff, ←closure_compl]
 
   -- Finally using seq y'n to show y is a limit point of Xᶜ 
   rw [mem_closure_iff_seq_limit]
@@ -132,7 +131,7 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
         rw [vsub_eq_zero_iff_eq] at h
         exact hxF (h ▸ hyF)
     exact hySn n
-  clear hyF hxF hySn Sn
+  clear hyF hxF hySn Sn hFEx hxX
     
   · -- 2. good ol' epsilon delta argument
     rw [Metric.tendsto_atTop]
@@ -142,10 +141,16 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
     rw [ge_iff_le, max_le_iff] at hn
 
     -- boring inequality manipulations
-    have hεn : dist x y / n ≤ ε := sorry
+    have hεn : dist x y / n ≤ ε := by
+      clear y''n hy'naff y'n hyX hy1y y1 h1 F X
+      rw [Nat.ceil_le, div_le_iff hε, ← div_le_iff' ] at hn
+      exact hn.2
+      norm_cast
+      linarith
+      done
     apply lt_of_lt_of_le ?_ hεn
 
-    rw [Subtype.dist_eq, dist_lineMap_right, sub_add_cancel', div_eq_inv_mul, mul_one, norm_neg, 
+    rw [Subtype.dist_eq, hy1y, dist_lineMap_right, sub_add_cancel', div_eq_inv_mul, mul_one, norm_neg, 
       norm_inv, Real.norm_eq_abs, div_eq_inv_mul, mul_lt_mul_right (dist_pos.mpr hxy), inv_lt_inv]
     <;> norm_cast
     simp only [lt_add_iff_pos_right]
