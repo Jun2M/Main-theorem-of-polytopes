@@ -221,89 +221,81 @@ lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace d} :
 lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : EuclideanSpace ℝ (Fin d) → Set (Halfspace d)) 
   (hI : ∀ x, I x ⊆ H_ ∧ ∀ Hi, Hi ∈ I x ↔ x ∈ frontier Hi.S) :
   ∀ x ∈ Hpolytope hH_, x ∈ Set.extremePoints ℝ (Hpolytope hH_) ↔ ⋂₀ ((frontier ·.S) '' I x) = {x} := by
-  rintro x hx
+  rintro x hxH
   constructor
   · -- 1.
     intro hxEx
     rw [mem_extremePoints] at hxEx
+    rw [Set.eq_singleton_iff_unique_mem]
+    constructor
+    · -- 1.
+      unfold Hpolytope at hxH
+      revert hxH
+      apply Set.sInter_subset_sInter
+      apply subset_trans (?_ : (frontier ·.S) '' I x ⊆ (·.S) '' I x)
+      · 
+        apply Set.image_subset
+        exact (hI x).1
+      ·
+        
+      done
+    · -- 2.
+      by_contra h
+      push_neg at h
+      rcases h with ⟨ y, hy, hyx ⟩
 
-    done
+      done
+
   · -- 2.
     intro hinterx
     rw [mem_extremePoints]
-    refine ⟨ hx, λ x1 hx1 x2 hx2 hxseg => ?_ ⟩
+    refine ⟨ hxH, λ x1 hx1 x2 hx2 hx => ?_ ⟩
+
     have : segment ℝ x1 x2 ⊆ {x} → x1 = x ∧ x2 = x := by
-      intro hseg
-      rw [Set.Nonempty.subset_singleton_iff (Set.nonempty_of_mem (left_mem_segment ℝ x1 x2))] at hseg
-      rw [Set.eq_singleton_iff_unique_mem] at hseg
-      exact ⟨ hseg.2 x1 (left_mem_segment ℝ x1 x2), hseg.2 x2 (right_mem_segment ℝ x1 x2) ⟩
+      rw [Set.Nonempty.subset_singleton_iff (Set.nonempty_of_mem (left_mem_segment ℝ x1 x2)), 
+        Set.eq_singleton_iff_unique_mem]
+      exact fun hseg => ⟨ hseg.2 x1 (left_mem_segment ℝ x1 x2), hseg.2 x2 (right_mem_segment ℝ x1 x2) ⟩
     apply this; clear this
+
     rw [← hinterx, Set.subset_sInter_iff]; clear hinterx
-    
-    intro HiS hHiS
-    rw [Set.mem_image] at hHiS
-    rcases hHiS with ⟨ Hi_, hHi_, rfl ⟩
+    rintro HiS ⟨ Hi_, hHi_, rfl ⟩
+    simp only
     rw [frontierHalfspace_Hyperplane, Set.subset_def]
     intro y hy
-    rw [segment_eq_image_lineMap, Set.mem_image] at hy
-    rcases hy with ⟨ t, ht, rfl ⟩
 
     unfold Hpolytope at hx1 hx2
     rw [Set.mem_sInter] at hx1 hx2
     have := Set.mem_image_of_mem (·.S) (Set.mem_of_subset_of_mem (hI x).1 hHi_)
-    specialize hx1 Hi_.S this --; rw [Hi_.h, Set.mem_preimage, Set.mem_setOf] at hx1
-    specialize hx2 Hi_.S this --; rw [Hi_.h, Set.mem_preimage, Set.mem_setOf] at hx2
+    specialize hx1 Hi_.S this
+    specialize hx2 Hi_.S this
     rw [(hI x).2, frontierHalfspace_Hyperplane, Set.mem_setOf ] at hHi_; clear this
-
-    have hhalfspaceconvex : ∀ v1 v2 : EuclideanSpace ℝ (Fin d), ∀ v ∈ openSegment ℝ v1 v2, ∀ Hi_' : Halfspace d, 
-      v1 ∈ Hi_'.S → v2 ∈ Hi_'.S → v ∈ Hi_'.S := by
-      intro v1 v2 v hv Hi_' hv1 hv2
-      exact Convex.openSegment_subset (Halfspace_convex Hi_') hv1 hv2 hv
 
     rw [Set.mem_setOf]
     by_contra h
     push_neg at h
-    suffices ∃ t' : ℝ, t' ∈ Set.Ioo 0 1 ∧ Hi_.f.1 ((AffineMap.lineMap x1 x2) t') > Hi_.α by
+
+    suffices ∃ t' : ℝ, t' ∈ Set.Icc 0 1 ∧ Hi_.f.1 ((AffineMap.lineMap x1 x2) t') > Hi_.α by
       rcases this with ⟨ t', ht', ht'α ⟩
-      have h' := hhalfspaceconvex x1 x2 ((AffineMap.lineMap x1 x2) t') (sorry) Hi_ hx1 hx2
-      rw [Hi_.h, Set.mem_preimage, Set.mem_setOf] at h'
-      linarith
+      have h' := Set.mem_of_subset_of_mem (Convex.segment_subset (Halfspace_convex Hi_) hx1 hx2) (?_ : (AffineMap.lineMap x1 x2) t' ∈ segment ℝ x1 x2)
+      rw [Hi_.h, Set.mem_preimage, Set.mem_setOf, ←not_lt ] at h'
+      exact h' ht'α 
+
+      rw [segment_eq_image_lineMap]
+      exact Set.mem_image_of_mem _ ht'
       done
     
     cases' (lt_or_gt_of_ne h) with h h
     · 
       rw [←hHi_] at h
-      rcases (Metric.isOpen_iff.mp (sorry : IsOpen (openSegment ℝ x1 x2))) x hxseg with ⟨ ε, hε, hεx ⟩
-      rw [openSegment_eq_image_lineMap, Set.mem_image] at hxseg
-      rcases hxseg with ⟨ t', ht', ht'x ⟩
-
-      rw [Set.subset_def] at hεx 
-      
+      rcases (Metric.isOpen_iff.mp (sorry : IsOpen (openSegment ℝ x1 x2))) x hx with ⟨ ε, hε, hεx ⟩
+      rw [openSegment_eq_image_lineMap, Set.mem_image] at hx
+      rcases hx with ⟨ t', ht', ht'x ⟩
+      sorry
       done 
     · 
-      
-      rw [LinearMap.coe_toAffineMap] at this
-      specialize this (Hi_.f.1 ((AffineMap.lineMap x1 x2) t)) ?_
-      ·
-        apply Set.mem_image_of_mem
-        rw [openSegment_eq_image_lineMap]
-        apply Set.mem_image_of_mem
-        cases' (Set.eq_endpoints_or_mem_Ioo_of_mem_Icc ht) with ht ht
-        · 
-          exfalso
-          rw [ht, AffineMap.lineMap_apply_zero, gt_iff_lt, lt_iff_not_ge] at h
-          exact h hx1
-        ·
-          cases' ht with ht ht
-          ·
-            exfalso
-            rw [ht, AffineMap.lineMap_apply_one, gt_iff_lt, lt_iff_not_ge] at h
-            exact h hx2
-          ·
-            exact ht
-      · 
-        rw [gt_iff_lt, lt_iff_not_ge] at h
-        exact h this
+      rw [segment_eq_image_lineMap, Set.mem_image] at hy
+      rcases hy with ⟨ t, ht, rfl ⟩
+      exact ⟨ t, ht, h ⟩ 
   done
 
 
