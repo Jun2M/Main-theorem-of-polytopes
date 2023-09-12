@@ -8,7 +8,11 @@ package «MasterDiss» {
 require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git"
 
-@[default_target]
-lean_lib «MasterDiss» {
+lean_lib «chapter2» {
   -- add any library configuration options here
+}
+
+@[default_target]
+lean_exe «Main» {
+  root := `Main
 }
