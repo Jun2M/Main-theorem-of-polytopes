@@ -5,6 +5,41 @@ import Mathlib.Analysis.Convex.Independent
 
 variable {d : ℕ+}
 
+-- lemma LineMapChangeofBasis  {k : Type u_1} {V1 : Type u_2} {P1 : Type u_3} 
+--   [Field k] [AddCommGroup V1] [Module k V1] [AddTorsor V1 P1] (p₀ : P1) (p₁ : P1) :
+--   ∀ a : k, Set.range (@AffineMap.lineMap k V1 P1 _ _ _ _ p₀ p₁) = 
+--   Set.range (@AffineMap.lineMap k V1 P1 _ _ _ _ p₀ (AffineMap.lineMap p₀ p₁ a)) := by
+--   intro a
+--   apply le_antisymm <;>
+--   simp only [Set.le_eq_subset] <;>
+--   rw [Set.range_subset_range_iff_exists_comp]
+--   · 
+--     use (·/a)
+--     ext x
+--     rw [Function.comp]
+--     done
+--   · 
+--     done
+--   sorry
+--   done
+
+-- lemma openSegment_intrinsicInterior_of_segment {x y : EuclideanSpace ℝ (Fin d)} (hxy : x ≠ y) :
+--   openSegment ℝ x y ⊆ intrinsicInterior ℝ (segment ℝ x y) := by
+--   rw [intrinsicInterior, segment_eq_image_lineMap]
+--   intro z hz
+--   rw [Set.mem_image]
+--   have h : z ∈ affineSpan ℝ ((AffineMap.lineMap x y) '' Set.Icc (0:ℝ) 1) := sorry
+--   use ⟨ z, h ⟩
+--   constructor
+--   · -- 1.
+--     apply preimage_interior_subset_interior_preimage continuous_subtype_val
+--     rw [Set.mem_preimage]
+--     done
+--   · -- 2.
+--     sorry
+--     done
+--   done
+
 -- Type for nonzero linear dual of EuclideanSpace ℝ (Fin d)
 def nontrivialdual (d : ℕ+) : Type := {f : (Module.Dual ℝ (EuclideanSpace ℝ (Fin d))) // f ≠ 0}
 
@@ -22,12 +57,20 @@ lemma nontrivialdual_surj : ∀ f : nontrivialdual d, Function.Surjective f.val 
   rw [LinearMap.map_smulₛₗ, RingHom.id_apply, smul_eq_mul, div_mul_cancel x hv]
   done
 
+lemma nontrivialdual_cont : ∀ f : nontrivialdual d, Continuous f.val := 
+  fun f => LinearMap.continuous_of_finiteDimensional f.val
+
 -- Type for halfspaces of EuclideanSpace ℝ (Fin d)
 structure Halfspace (d : ℕ+) where
   f : nontrivialdual d
   α : ℝ
   S : Set (EuclideanSpace ℝ (Fin d)) := f.1 ⁻¹' {x | x ≤ α}
   h : S = f.1 ⁻¹' {x | x ≤ α}
+
+lemma Halfspace_mem (H_ : Halfspace d) : ∀ x, x ∈ H_.S ↔ H_.f.1 x ≤ H_.α := by
+  intro x
+  rw [H_.h]
+  exact Iff.rfl
 
 lemma Halfspace_convex (H_ : Halfspace d) : Convex ℝ H_.S := by
   rw [H_.h]
@@ -37,15 +80,35 @@ lemma Halfspace_closed (H_ : Halfspace d) : IsClosed H_.S := by
   rw [H_.h]
   exact IsClosed.preimage (LinearMap.continuous_of_finiteDimensional H_.f.1) isClosed_Iic
 
-lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⟨ Set.univ, sorry ⟩  := by
-  sorry
+lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
+  -- affine span of a ball(simplex, in general) is entire
+  apply affineSpan_eq_top_of_nonempty_interior
+  apply Set.Nonempty.mono (?_ : H_.f.1 ⁻¹' (Metric.ball (H_.α -1) (1/2)) ⊆ (interior ((convexHull ℝ) H_.S)))
+  · -- preimage of ball is not empty as f is surjective
+    cases' nontrivialdual_surj H_.f (H_.α -1) with x hx
+    use x
+    rw [Set.mem_preimage, Metric.mem_ball, dist_sub_eq_dist_add_right, hx, sub_add_cancel, dist_self]
+    linarith
+    done
+  -- this open set is subset of the halfspace
+  rw [IsOpen.subset_interior_iff (IsOpen.preimage (nontrivialdual_cont H_.f) Metric.isOpen_ball)]
+  apply subset_trans ?_ (subset_convexHull ℝ H_.S)
+  intro x hx
+  rw [Set.mem_preimage, Real.ball_eq_Ioo, Set.mem_Ioo] at hx
+  rw [Halfspace_mem H_]
+  linarith
   done
 
+  -- Metric.mem_closure_iff  
+  -- 1. get basis for hyperplane
+  -- 2. get a point in interior of Hi_
+  -- 3. combine them to get a basis for entire space
+  -- done
 
-lemma HalfspaceIntrinsicFrontier (H_ : Halfspace d) : intrinsicFrontier ℝ H_.S = frontier H_.S := by
-  rw [intrinsicFrontier]
-  sorry
-  done
+-- lemma HalfspaceIntrinsicFrontier (H_ : Halfspace d) : intrinsicFrontier ℝ H_.S = frontier H_.S := by
+--   rw [intrinsicFrontier]
+--   sorry
+--   done
 
 def IsFace (F X : Set (EuclideanSpace ℝ (Fin d))) : Prop := 
   Convex ℝ F ∧ IsClosed F ∧ IsExtreme ℝ X F
@@ -88,10 +151,7 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
 
   have hy'naff : ∀ n, y'n n ∈ affineSpan ℝ X := by
     intro n
-    apply affineSpan_mono ℝ
-    rw [Set.insert_subset_iff]
-    exact ⟨hxX, Set.singleton_subset_iff.mpr hyX⟩
-    exact AffineMap.lineMap_mem_affineSpan_pair (1 + 1/(n+1):ℝ) x y
+    apply AffineMap.lineMap_mem <;> apply subset_affineSpan <;> assumption
 
   let y''n : ℕ → affineSpan ℝ X := λ n => ⟨y'n n, hy'naff n⟩
 

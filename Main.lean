@@ -87,7 +87,8 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
       push_neg at h
       rcases h with ⟨ y, hy, hyx ⟩
       let u := y -ᵥ x
-
+      -- if not 0 dim, it much be more than 1 dim
+      -- find an open convex ball around y then it must contain a segment with y in its interior
       done
 
   · -- 2.
@@ -121,7 +122,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
     suffices ∃ t' : ℝ, t' ∈ Set.Icc 0 1 ∧ Hi_.f.1 ((AffineMap.lineMap x1 x2) t') > Hi_.α by
       rcases this with ⟨ t', ht', ht'α ⟩
       have h' := Set.mem_of_subset_of_mem (Convex.segment_subset (Halfspace_convex Hi_) hx1 hx2) (?_ : (AffineMap.lineMap x1 x2) t' ∈ segment ℝ x1 x2)
-      rw [Hi_.h, Set.mem_preimage, Set.mem_setOf, ←not_lt ] at h'
+      rw [Halfspace_mem Hi_, ←not_lt ] at h'
       exact h' ht'α 
 
       rw [segment_eq_image_lineMap]
