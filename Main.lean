@@ -76,20 +76,84 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
     intro hxEx
     -- rw [mem_extremePoints] at hxEx
     rw [Set.eq_singleton_iff_unique_mem]
-    constructor
-    · -- 1.
+    have hxI : x ∈ ⋂₀ ((fun x => frontier x.S) '' I x) := by
       rw [Set.mem_sInter]
       rintro HiS ⟨ Hi_, hHi_, rfl ⟩ 
       rw [(hI x).2] at hHi_
       exact hHi_
-    · -- 2.
-      by_contra h
-      push_neg at h
-      rcases h with ⟨ y, hy, hyx ⟩
-      let u := y -ᵥ x
-      -- if not 0 dim, it much be more than 1 dim
-      -- find an open convex ball around y then it must contain a segment with y in its interior
+    refine ⟨ hxI, ?_ ⟩
+    contrapose! hxEx
+
+    -- if not 0 dim, it much be more than 1 dim
+
+    -- For all Hi ∉ I x, x is in the interior of Hi.S then we can fit a ball around x within Hi.S
+    have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
+      unfold Hpolytope at hxH
+      have hxIcinterior : x ∈ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
+        rw [Set.mem_sInter]
+        rintro HiS ⟨ Hi_, hHi_, rfl ⟩ 
+        rw [Set.mem_sInter] at hxH
+        rw [Set.mem_diff, (hI x).2 Hi_] at hHi_
+        specialize hxH Hi_.S ?_
+        · 
+          rw [Set.mem_image]
+          exact ⟨ Hi_, hHi_.1, rfl ⟩
+
+        rw [IsClosed.frontier_eq <| Halfspace_closed Hi_, Set.mem_diff] at hHi_
+        push_neg at hHi_
+        exact hHi_.2 hxH
+      
+      have hIcinteriorOpen : IsOpen (⋂₀ ((fun x => interior x.S) '' (H_ \ I x))) := by
+        apply Set.Finite.isOpen_sInter (Set.Finite.image _ (Set.Finite.diff hH_ _))
+        rintro _ ⟨ Hi_, hHi_, rfl ⟩
+        exact isOpen_interior
+
+      rw [Metric.isOpen_iff] at hIcinteriorOpen
+      exact hIcinteriorOpen x hxIcinterior
+    
+    -- As a ball around x is convex, it must contain a segment with x in its interior
+    have hxSegBallInterSeg : ∀ x1 x2 ε, x ∈ openSegment ℝ x1 x2 ∧ ¬ (x1 = x ∧ x2 = x) → 0 < ε → 
+      ∃ x1' x2', openSegment ℝ x1' x2' ⊆ openSegment ℝ x1 x2 ∩ Metric.ball x ε ∧ ¬ (x1' = x ∧ x2' = x) := by 
+      rintro x1 x2 ε ⟨ hxseg, hne ⟩ hε 
+      use (min 1 ε/norm (x1 - x)) • (x1 - x) + x 
+      use (min 1 ε/norm (x2 - x)) • (x2 - x) + x
+      constructor
+      · -- 1.
+        sorry
+        done
+      · -- 2.
+        push_neg at hne
+        push_neg
+        rcases (em (x1 = x)) with (rfl | hne1)
+        · 
+          simp only [forall_true_left] at hne
+          rw [sub_self, smul_zero, zero_add, eq_self, true_implies]
+          contrapose! hne
+          norm_num at hne
+          cases' hne with h h
+          ·
+            exfalso
+            rw [min_eq_iff] at h
+            cases' h with h h
+            linarith
+            linarith
+          · 
+            rw [sub_eq_zero] at h
+            exact h
+        ·
+          intro h
+          exfalso
+        done
+      -- convex_ball Convex.openSegment_subset
       done
+
+    -- Finishing up
+    rcases hxEx with ⟨ y, hy, hyx ⟩
+
+    rw [mem_extremePoints]
+    push_neg
+    rintro hxH'
+    done
 
   · -- 2.
     intro hinterx

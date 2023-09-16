@@ -12,6 +12,10 @@ lean_lib «chapter2» {
   -- add any library configuration options here
 }
 
+lean_lib «pre» {
+  -- add any library configuration options here
+}
+
 @[default_target]
 lean_exe «Main» {
   root := `Main

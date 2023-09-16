@@ -1,6 +1,7 @@
 import Mathlib.Analysis.Convex.Intrinsic
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Analysis.Convex.Independent
+-- import Pre
 
 
 variable {d : ℕ+}
@@ -24,7 +25,33 @@ variable {d : ℕ+}
 --   done
 
 -- lemma openSegment_intrinsicInterior_of_segment {x y : EuclideanSpace ℝ (Fin d)} (hxy : x ≠ y) :
---   openSegment ℝ x y ⊆ intrinsicInterior ℝ (segment ℝ x y) := by
+--   openSegment ℝ x y = intrinsicInterior ℝ (segment ℝ x y) := by
+--   apply subset_antisymm
+--   · -- 1.
+--     intro z hz
+--     rw [intrinsicInterior, Set.mem_image]
+--     let z' : { x_2 // x_2 ∈ ↑(affineSpan ℝ (segment ℝ x y)) } := ⟨ z, ?_ ⟩ 
+--     refine ⟨ z', ?_ , rfl ⟩
+--     rw [mem_interior]
+--     refine ⟨ Metric.ball z' ((min (dist z x) (dist z y))/2) , ?_, 
+--       Metric.isOpen_ball, Metric.mem_ball_self ?_ ⟩
+--     · 
+--       intro w hw
+--       rw [Set.mem_preimage]
+--       rw [Metric.mem_ball, dist_comm] at hw
+--       apply openSegment_subset_segment
+--       rw [openSegment, Set.mem_setOf] at hz
+--       rcases hz with ⟨ a, b, ha, hb, hab, hz ⟩
+--       have := w.property
+--       rw [← SetLike.mem_coe, coe_affineSpan, spanPoints, Set.mem_setOf] at this
+--       rcases this with ⟨ w1, hw1, w2, hw2, hw ⟩
+--       done
+
+--     done
+--   · -- 2.
+--     sorry
+--     done
+
 --   rw [intrinsicInterior, segment_eq_image_lineMap]
 --   intro z hz
 --   rw [Set.mem_image]
@@ -39,6 +66,12 @@ variable {d : ℕ+}
 --     sorry
 --     done
 --   done
+
+theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [TopologicalSpace α] :
+  (∀ t ∈ s, IsOpen t) → IsOpen (⋂₀ s) :=
+  Finite.induction_on hs (fun _ => by rw [sInter_empty]; exact isOpen_univ) fun _ _ ih h => by
+    simp only [sInter_insert, ball_insert_iff] at h ⊢
+    exact h.1.inter (ih h.2)
 
 -- Type for nonzero linear dual of EuclideanSpace ℝ (Fin d)
 def nontrivialdual (d : ℕ+) : Type := {f : (Module.Dual ℝ (EuclideanSpace ℝ (Fin d))) // f ≠ 0}
