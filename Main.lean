@@ -115,36 +115,79 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
     have hxSegBallInterSeg : ∀ x1 x2 ε, x ∈ openSegment ℝ x1 x2 ∧ ¬ (x1 = x ∧ x2 = x) → 0 < ε → 
       ∃ x1' x2', openSegment ℝ x1' x2' ⊆ openSegment ℝ x1 x2 ∩ Metric.ball x ε ∧ ¬ (x1' = x ∧ x2' = x) := by 
       rintro x1 x2 ε ⟨ hxseg, hne ⟩ hε 
-      use (min 1 ε/norm (x1 - x)) • (x1 - x) + x 
-      use (min 1 ε/norm (x2 - x)) • (x2 - x) + x
+      push_neg at hne
+      have hxseg' := hxseg
+      rw [openSegment_eq_image', Set.mem_image] at hxseg
+      rcases hxseg with ⟨ t, ht, htt ⟩ 
+      let t1 := (-(min t (ε/norm (x2 - x1))/2))
+      let t2 := ((min (1-t) (ε/norm (x2 - x1)))/2)
+      use t1 • (x2 - x1) + x 
+      use t2 • (x2 - x1) + x
+
+      have hx12 : x1 ≠ x2 := by
+        intro h
+        rw [←h, openSegment_same] at hxseg'
+        rw [←h] at hne
+        exact hne (Set.eq_of_mem_singleton hxseg').symm (Set.eq_of_mem_singleton hxseg').symm
+
+      have ht1pos: 0 < min t (ε / ‖x2 - x1‖) := by
+        simp only [ge_iff_le, lt_min_iff]
+        constructor
+        linarith [ht.1]
+        rw [div_pos_iff]
+        left
+        exact ⟨ hε, norm_sub_pos_iff.mpr (Ne.symm hx12) ⟩
+
+      have ht2pos: 0 < min (1 - t) (ε / ‖x2 - x1‖) := by
+        apply lt_min
+        linarith [ht.2]
+        rw [div_pos_iff]
+        left
+        exact ⟨ hε, norm_sub_pos_iff.mpr (Ne.symm hx12) ⟩
+
       constructor
-      · -- 1.
-        sorry
+      · -- 1. main proof
+        rw [Set.subset_inter_iff]
+        constructor
+        · -- 1. smaller segment is in the segment
+          have := @convex_openSegment ℝ _ _ _ _ x1 x2
+          rw [convex_iff_openSegment_subset] at this
+          apply this <;> clear this <;> rw [←htt] <;> 
+          rw [@add_comm _ _ x1, ←add_assoc, ← add_smul, @add_comm _ _ _ t, openSegment_eq_image']
+          · -- 1. first bound of the smaller segment is in the segment (boring ineq manipulation)
+            exact ⟨ t + t1, 
+              ⟨ lt_of_le_of_lt' (by linarith [min_le_left t (ε/norm (x2 - x1))] : t -t/2 ≤ t -(min t (ε / ‖x2-x1‖)/2)) 
+                  (by linarith [ht.1]),
+                lt_trans (by linarith [ht1pos] : t + (-(min t (ε/norm (x2 - x1))/2)) < t) ht.2 ⟩, 
+              by simp only [ge_iff_le] ;rw [add_comm, @add_comm _ _ t t1, sub_eq_neg_add] ⟩
+          · -- 2. second bound of the smaller segment is in the segment
+            refine ⟨ t + t2,
+              ⟨ lt_trans ht.1 (by linarith [ht2pos] : t < t + (min (1 - t) (ε / ‖x2 - x1‖) / 2)), ?_ ⟩,
+              by simp only [ge_iff_le] ;rw [add_comm] ⟩
+            exact lt_of_lt_of_le' (by linarith [ht.2]) 
+              (by linarith [min_le_left (1 - t) ((ε / ‖x2 - x1‖))] : t + min (1 - t) (ε / ‖x2 - x1‖) / 2 ≤ t + ((1 - t) / 2))
+          done
+        · -- 2. smaller segment is in the ball
+          clear ht hxseg' hne hball hxEx hxI hxH hI I hH_ H_
+          rw [← half_lt_self_iff] at hε
+          have := convex_ball x ε
+          rw [convex_iff_openSegment_subset] at this
+          apply this <;> clear this <;> rw [Metric.mem_ball] <;> norm_num <;>
+          rw [norm_smul, Real.norm_eq_abs, abs_of_pos (by linarith), ← min_div_div_right (by linarith), 
+            Monotone.map_min fun _ _ => (mul_le_mul_right (norm_sub_pos_iff.mpr (Ne.symm hx12))).mpr] <;>
+          apply min_lt_of_right_lt <;>
+          rw [@div_mul_comm _ _ _ 2, mul_comm, 
+            div_mul_div_cancel _ (Ne.symm (ne_of_lt (norm_sub_pos_iff.mpr (Ne.symm hx12))))] <;>
+          exact hε
         done
-      · -- 2.
-        push_neg at hne
+      · -- 2. the smaller segment is not a singleton
         push_neg
-        rcases (em (x1 = x)) with (rfl | hne1)
-        · 
-          simp only [forall_true_left] at hne
-          rw [sub_self, smul_zero, zero_add, eq_self, true_implies]
-          contrapose! hne
-          norm_num at hne
-          cases' hne with h h
-          ·
-            exfalso
-            rw [min_eq_iff] at h
-            cases' h with h h
-            linarith
-            linarith
-          · 
-            rw [sub_eq_zero] at h
-            exact h
-        ·
-          intro h
-          exfalso
+        intro h1
+        rcases (em (x1 = x)) with (rfl | hne1) <;> norm_num <;> intro h <;> rw [sub_eq_zero] at h <;> 
+        cases' h with h h <;> try exact (ne_of_lt ht2pos) h.symm
+        exact hx12 h.symm
+        exact hx12 h.symm
         done
-      -- convex_ball Convex.openSegment_subset
       done
 
     -- Finishing up
