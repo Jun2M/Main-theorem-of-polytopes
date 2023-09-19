@@ -62,26 +62,44 @@ lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpa
     done
 
 lemma line_of_pair_linearmap  {k : Type u_1} {V : Type u_2} [Ring 𝕜] [AddCommGroup V] [Module 𝕜 V] (v1 v2 : V) 
-  (f : V →ₗ[𝕜] 𝕜) : f v1 = a ∧ f v2 = a → f '' (Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2)) = {a} := by
-  rintro ⟨ h1, h2 ⟩
-  ext x
+  (f : V →ₗ[𝕜] 𝕜) : f v1 = a ∧ f v2 = a ↔ f '' (Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2)) = {a} := by
   constructor
-  · -- 1.
-    rintro ⟨ v, hv, rfl ⟩
-    rw [Set.mem_singleton_iff]
-    rw [Set.mem_range] at hv
-    rcases hv with ⟨ t, rfl ⟩
-    rw [AffineMap.lineMap_apply_module]
-    rw [f.map_add, f.map_smul, h1, f.map_smul, h2, ← add_smul, sub_add_cancel, one_smul]
-    done
-  · -- 2.
-    rintro rfl; clear h2
-    rw [Set.mem_image]
-    refine ⟨ v1, ?_, h1 ⟩
-    rw [Set.mem_range]
-    use 0
-    rw [AffineMap.lineMap_apply_zero]
-    done
+  · 
+    rintro ⟨ h1, h2 ⟩
+    ext x
+    constructor
+    · -- 1.
+      rintro ⟨ v, hv, rfl ⟩
+      rw [Set.mem_singleton_iff]
+      rw [Set.mem_range] at hv
+      rcases hv with ⟨ t, rfl ⟩
+      rw [AffineMap.lineMap_apply_module]
+      rw [f.map_add, f.map_smul, h1, f.map_smul, h2, ← add_smul, sub_add_cancel, one_smul]
+      done
+    · -- 2.
+      rintro rfl; clear h2
+      rw [Set.mem_image]
+      refine ⟨ v1, ?_, h1 ⟩
+      rw [Set.mem_range]
+      use (0:𝕜)
+      rw [AffineMap.lineMap_apply_zero]
+      done
+  · 
+    rintro h
+    have h1 : f v1 ∈ f '' Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2) := by
+      apply Set.mem_image_of_mem
+      rw [Set.mem_range]
+      exact ⟨ 0, AffineMap.lineMap_apply_zero v1 v2 ⟩ 
+    rw [h] at h1
+
+    have h2 : f v2 ∈ f '' Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2) := by
+      apply Set.mem_image_of_mem
+      rw [Set.mem_range]
+      exact ⟨ 1, AffineMap.lineMap_apply_one v1 v2 ⟩ 
+    rw [h] at h2
+
+    rw [Set.mem_singleton_iff] at h1 h2
+    exact ⟨ h1, h2 ⟩
   done
    
 
@@ -94,42 +112,31 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x
   have hxseg' := hxseg
   rw [openSegment_eq_image', Set.mem_image] at hxseg
   rcases hxseg with ⟨ t, ht, htt ⟩ 
-  let t1 := (-(min t (ε/norm (x2 - x1))/2))
-  let t2 := ((min (1-t) (ε/norm (x2 - x1)))/2)
-  use t1 • (x2 - x1) + x 
-  use t2 • (x2 - x1) + x
+  let v := x2 - x1
+  let t1 := (-(min t (ε/norm v)/2))
+  let t2 := ((min (1-t) (ε/norm v))/2)
+  use t1 • v + x 
+  use t2 • v + x
 
   have hx12 : x1 ≠ x2 := by
     intro h
     rw [←h, openSegment_same] at hxseg'
-    rw [←h] at hne
-    exact hne (Set.eq_of_mem_singleton hxseg').symm (Set.eq_of_mem_singleton hxseg').symm
+    exact (h.symm ▸ hne) (Set.eq_of_mem_singleton hxseg').symm (Set.eq_of_mem_singleton hxseg').symm
 
   have ht1pos: 0 < min t (ε / ‖x2 - x1‖) := lt_min ht.1 <| div_pos hε <| norm_sub_pos_iff.mpr (Ne.symm hx12)
 
   have ht2pos: 0 < min (1 - t) (ε / ‖x2 - x1‖) := 
     lt_min (by linarith [ht.2]) <| div_pos hε <| norm_sub_pos_iff.mpr (Ne.symm hx12)
 
+  have ht1 : t1 < 0 := neg_lt_zero.mpr <| half_pos ht1pos
+  have ht2 : 0 < t2 := half_pos ht2pos
+  have ht12 : 0 < t2 - t1 := sub_pos.mpr <| lt_trans ht1 ht2
+
   constructor
   · -- x in the segment
     rw [openSegment_eq_image', Set.mem_image]
-
-    have ht1 : t1 < 0 := by
-      rw [neg_lt_zero]
-      linarith [ht1pos]
-      done
-
-    have ht2 : 0 < t2 := by
-      change 0 < min (1 - t) (ε / ‖x2 - x1‖) / 2
-      linarith [ht2pos]
-      done
-    
-    have ht12 : 0 < t2 - t1 := by
-      rw [sub_pos]
-      exact lt_trans ht1 ht2
-
     refine ⟨ (-t1/(t2 - t1)), ?_, ?_ ⟩
-    ·          
+    · 
       constructor
       · -- 1.
         rw [div_pos_iff]
@@ -138,23 +145,16 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x
       · -- 2.
         rw [div_lt_one_iff]
         left
-        refine ⟨ ht12, ?_ ⟩
-        rw [neg_lt_sub_iff_lt_add]
-        exact lt_add_of_le_of_pos (by linarith) ht2
-        done
+        exact ⟨ ht12, neg_lt_sub_iff_lt_add.mpr <| lt_add_of_le_of_pos (le_refl _) ht2 ⟩
       done
-      
-    let v := x2 - x1
-    change t1 • v + x + (-t1 / (t2 - t1)) • (t2 • v + x - (t1 • v + x)) = x
-    rw [smul_sub (-t1 / (t2 - t1)), smul_add (-t1 / (t2 - t1)), smul_smul, smul_add, smul_smul, 
-      add_sub_add_comm, sub_self, add_zero, ←sub_smul, ←mul_sub, div_mul_cancel _ ?_, add_comm, 
-      ← add_assoc, ← add_smul, neg_add_self, zero_smul, zero_add]
-    exact Ne.symm (ne_of_lt ht12)
-    done
+    · 
+      rw [smul_sub (-t1 / (t2 - t1)), smul_add (-t1 / (t2 - t1)), smul_smul, smul_add, smul_smul, 
+        add_sub_add_comm, sub_self, add_zero, ←sub_smul, ←mul_sub, div_mul_cancel _ ?_, add_comm, 
+        ← add_assoc, ← add_smul, neg_add_self, zero_smul, zero_add]
+      exact Ne.symm (ne_of_lt ht12)
   
   constructor
   · -- 1. main proof
-    
     rw [Set.subset_inter_iff]
     constructor
     · -- 1. smaller segment is in the segment
@@ -164,23 +164,20 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x
       rw [@add_comm _ _ x1, ←add_assoc, ← add_smul, @add_comm _ _ _ t, openSegment_eq_image']
       · -- 1. first bound of the smaller segment is in the segment (boring ineq manipulation)
         exact ⟨ t + t1, 
-          ⟨ lt_of_le_of_lt' (by linarith [min_le_left t (ε/norm (x2 - x1))] : t -t/2 ≤ t -(min t (ε / ‖x2-x1‖)/2)) 
-              (by linarith [ht.1]),
-            lt_trans (by linarith [ht1pos] : t + (-(min t (ε/norm (x2 - x1))/2)) < t) ht.2 ⟩, 
+          ⟨ lt_of_le_of_lt' (by linarith [min_le_left t (ε/norm v)] : t -t/2 ≤ t -(min t (ε /norm v)/2)) 
+            (by linarith [ht.1]), lt_trans (add_lt_of_neg_right t ht1) ht.2 ⟩, 
           by simp only [ge_iff_le] ;rw [add_comm, @add_comm _ _ t t1, sub_eq_neg_add] ⟩
       · -- 2. second bound of the smaller segment is in the segment
         refine ⟨ t + t2,
           ⟨ lt_trans ht.1 (by linarith [ht2pos] : t < t + (min (1 - t) (ε / ‖x2 - x1‖) / 2)), ?_ ⟩,
           by simp only [ge_iff_le] ;rw [add_comm] ⟩
-        exact lt_of_lt_of_le' (by linarith [ht.2]) 
-          (by linarith [min_le_left (1 - t) ((ε / ‖x2 - x1‖))] : t + min (1 - t) (ε / ‖x2 - x1‖) / 2 ≤ t + ((1 - t) / 2))
+        exact lt_of_lt_of_le' (by linarith [ht.2]) (by linarith [min_le_left (1 - t) ((ε / ‖x2 - x1‖))] 
+          : t + min (1 - t) (ε / ‖x2 - x1‖) / 2 ≤ t + ((1 - t) / 2))
       done
     · -- 2. smaller segment is in the ball
       clear ht hxseg' hne
       rw [← half_lt_self_iff] at hε
-      have := convex_ball x ε
-      rw [convex_iff_segment_subset] at this
-      apply this <;> clear this <;> rw [Metric.mem_ball] <;> norm_num <;>
+      apply (convex_iff_segment_subset.mp <| convex_ball x ε ) <;> rw [Metric.mem_ball] <;> norm_num <;>
       rw [norm_smul, Real.norm_eq_abs, abs_of_pos (by linarith), ← min_div_div_right (by linarith), 
         Monotone.map_min fun _ _ => (mul_le_mul_right (norm_sub_pos_iff.mpr (Ne.symm hx12))).mpr] <;>
       apply min_lt_of_right_lt <;>
@@ -192,12 +189,10 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x
     push_neg
     intro h1
     rcases (em (x1 = x)) with (rfl | hne1) <;> norm_num <;> intro h <;> rw [sub_eq_zero] at h <;> 
-    cases' h with h h <;> try exact (ne_of_lt ht2pos) h.symm
-    exact hx12 h.symm
-    exact hx12 h.symm
+    cases' h with h h <;> try exact (ne_of_lt ht2pos) h.symm 
+    all_goals {exact hx12 h.symm}
     done
   done
-
 
 -- /-
 -- Lemma4.5. Let 𝑋 bean 𝐻-polytope in ℝ^𝑑 and 𝑥 ∈ 𝑋 . Let 𝐼 ⊆ {1,...,𝑛} be such that 𝑥 ∈ 𝐻𝑖 iff
@@ -223,15 +218,19 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
   constructor
   · -- 1.
     intro hxEx
-    -- rw [mem_extremePoints] at hxEx
     rw [Set.eq_singleton_iff_unique_mem]
-    have hxI : x ∈ ⋂₀ ((fun x => frontier x.S) '' I x) := by
-      rw [Set.mem_sInter]
-      rintro HiS ⟨ Hi_, hHi_, rfl ⟩ 
-      rw [(hI x).2] at hHi_
-      exact hHi_
-    refine ⟨ hxI, ?_ ⟩
+    refine ⟨ fun HiS ⟨ Hi_, hHi_, h ⟩  => h ▸ ((hI x).2 Hi_).mp hHi_, ?_ ⟩
     contrapose! hxEx
+    rcases hxEx with ⟨ y, hy, hyx ⟩
+    
+    -- some useful results
+    have hxyy : x ∈ openSegment ℝ ((2:ℝ) • x - y) y := by
+      clear hyx hy hxH hI hH_ I
+      rw [openSegment_eq_image, Set.mem_image]
+      refine ⟨ 1/2, by norm_num, ?_ ⟩
+      rw [(by norm_num : (1:ℝ) - 1 / 2 = 1 / 2), smul_sub, sub_add_cancel, smul_smul, 
+        div_mul_cancel _ (by linarith), one_smul]
+      done
 
     -- For all Hi ∉ I x, x is in the interior of Hi.S then we can fit a ball around x within Hi.S
     have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
@@ -244,64 +243,85 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
       
       have hIcinteriorOpen : IsOpen (⋂₀ ((fun x => interior x.S) '' (H_ \ I x))) := by
         apply Set.Finite.isOpen_sInter (Set.Finite.image _ (Set.Finite.diff hH_ _))
-        rintro _ ⟨ Hi_, hHi_, rfl ⟩
-        exact isOpen_interior
+        exact fun _ ⟨ Hi_, _, h ⟩ => h ▸ isOpen_interior
 
       rw [Metric.isOpen_iff] at hIcinteriorOpen
       exact hIcinteriorOpen x hxIcinterior
-
-    -- Finishing up
-    rcases hxEx with ⟨ y, hy, hyx ⟩
     rcases hball with ⟨ ε, hε, hball ⟩
 
-    have hxyy : x ∈ openSegment ℝ ((2:ℝ) • x - y) y := by
-      rw [openSegment_eq_image, Set.mem_image]
-      refine ⟨ 1/2, by norm_num, ?_ ⟩
-      rw [(by norm_num : (1:ℝ) - 1 / 2 = 1 / 2), smul_sub, sub_add_cancel, smul_smul, 
-        div_mul_cancel _ (by linarith), one_smul]
-      done
+    have hmemballmemIc : ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_ \ I x → v ∈ Hi_.S := by
+      rintro v hv Hi_ hHi_
+      apply interior_subset
+      exact (Set.mem_sInter.mp <| hball hv) (interior Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
+
+    have hmemsegmemI : ∀ v, v ∈ segment ℝ ((2:ℝ) • x - y) y → ∀ Hi_, Hi_ ∈ I x → v ∈ Hi_.S := by
+      rintro v hv Hi_ hHi_
+      -- x & y are in the hyperplane
+      rw [Set.mem_sInter] at hy
+      specialize hy (frontier Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
+      rw [(hI x).2 Hi_] at hHi_
+      rw [frontierHalfspace_Hyperplane] at hy hHi_
+
+      -- v ∈ segment ℝ ((2:ℝ) • x - y) y ⊆ frontier Hi_.S ⊆ Hi_.S
+      apply IsClosed.frontier_subset <| Halfspace_closed Hi_
+      rw [frontierHalfspace_Hyperplane]
+      apply Set.mem_of_mem_of_subset hv
+      apply (convex_iff_segment_subset.mp <| Hyperplane_convex Hi_) _ hy
+
+      -- segment is in the hyperplane as hyperplane is closed under affine combination
+      have h21 : Finset.sum Finset.univ ![(2:ℝ), -1] = 1 := by 
+        rw [Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.head_cons]
+        linarith
+        done
+      
+      have h2x_y := Hyperplane_affineClosed Hi_ ![x, y] (by 
+        rw [Matrix.range_cons, Matrix.range_cons, Matrix.range_empty, Set.union_empty];
+        exact Set.union_subset (Set.singleton_subset_iff.mpr hHi_) (Set.singleton_subset_iff.mpr hy))
+        ![2, -1] h21 
+
+      rw [Finset.affineCombination_eq_linear_combination _ _ _ h21, Fin.sum_univ_two, Matrix.cons_val_zero, 
+        Matrix.cons_val_one, Matrix.head_cons, Matrix.cons_val_zero, Matrix.cons_val_one, 
+        Matrix.head_cons, neg_one_smul, ← sub_eq_add_neg] at h2x_y
+      exact h2x_y
 
     rw [mem_extremePoints]
     push_neg
     rintro hxH'
     rcases hxSegBallInterSeg ((2:ℝ) • x - y) y ε ⟨ hxyy, fun h => hyx h.2 ⟩ hε with ⟨ x1, x2, hmem, hsub, hne ⟩
-    push_neg at hne
+    push_neg at hne ; clear hI hxH' hε hyx hy hxH hxyy
+    unfold Hpolytope
 
-    have hmemballmemIc : ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_ \ I x → v ∈ Hi_.S := by
-      rintro v hv Hi_ hHi_
-      rw [Set.mem_diff] at hHi_
-      sorry
-      done
+    refine ⟨ x1, ?_, x2, ?_, ⟨ hmem, hne ⟩ ⟩ <;> clear hmem hne <;>
+    rw [Set.mem_sInter] <;>
+    intro Hi_s hHi_s <;>
+    rw [Set.mem_image] at hHi_s <;>
+    rcases hHi_s with ⟨ Hi_, hHi_, rfl ⟩ 
 
-    have hmemsegmemI : ∀ v, v ∈ segment ℝ x1 x2 → ∀ Hi_, Hi_ ∈ I x → v ∈ Hi_.S := by
-      rintro v hv Hi_ hHi_
-      rw [mem_Hpolytope] at hxH
-      specialize hxH Hi_ ((hI x).1 hHi_)
-      sorry
-      done
-
-    use x1
-    constructor
     · -- x1 ∈ Hpolytope hH_
-      clear hmem 
       specialize hsub (left_mem_segment ℝ x1 x2)
-      unfold Hpolytope
-      rw [Set.mem_sInter]
-      intro Hi_s hHi_s
-      rw [Set.mem_image] at hHi_s
-      rcases hHi_s with ⟨ Hi_, hHi_, rfl ⟩
-      rcases (em (Hi_ ∈ I x)) with (hinI | hninI) <;> clear hHi_
+      rcases (em (Hi_ ∈ I x)) with (hinI | hninI)
       · 
-        sorry
+        apply hmemsegmemI x1 ?_ Hi_ hinI
+        apply openSegment_subset_segment
+        exact Set.mem_of_mem_inter_left hsub
       · 
-        sorry
+        have : Hi_ ∈ H_ \ I x := by
+          rw [Set.mem_diff]
+          exact ⟨ hHi_, hninI ⟩
+        exact hmemballmemIc x1 (Set.mem_of_mem_inter_right hsub) Hi_ this
       done
-    use x2
-    constructor
-    ·
-      sorry
-      done
-    exact ⟨ hmem, hne ⟩
+    · -- x2 ∈ Hpolytope hH_
+      specialize hsub (right_mem_segment ℝ x1 x2)
+      rcases (em (Hi_ ∈ I x)) with (hinI | hninI)
+      · 
+        apply hmemsegmemI x2 ?_ Hi_ hinI
+        apply openSegment_subset_segment
+        exact Set.mem_of_mem_inter_left hsub
+      ·
+        have : Hi_ ∈ H_ \ I x := by
+          rw [Set.mem_diff]
+          exact ⟨ hHi_, hninI ⟩
+        exact hmemballmemIc x2 (Set.mem_of_mem_inter_right hsub) Hi_ this
     done
 
   · -- 2.

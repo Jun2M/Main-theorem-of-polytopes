@@ -146,6 +146,23 @@ lemma Hyperplane_convex (Hi_ : Halfspace d) :
   Convex ℝ {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
   exact @convex_hyperplane ℝ (EuclideanSpace ℝ (Fin d)) ℝ _ _ _ _ _ _ Hi_.f.1 (LinearMap.isLinear Hi_.f.1) Hi_.α
   done
+
+lemma Hyperplane_affineClosed (Hi_ : Halfspace d) :
+  ∀ s : Fin n → (EuclideanSpace ℝ (Fin d)), Set.range s ⊆ {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α }
+    → ∀ a : Fin n → ℝ, Finset.univ.sum a = 1 →  
+    Finset.affineCombination ℝ Finset.univ s a ∈ {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
+  intro s hs a ha
+  rw [Finset.affineCombination_eq_linear_combination _ _ _ ha, Set.mem_setOf, LinearMap.map_sum]
+  have hg : (fun i => Hi_.f.1 (a i • s i)) = fun i => a i * Hi_.α := by
+    ext i
+    rw [Set.range_subset_iff] at hs
+    specialize hs i
+    rw [Set.mem_setOf] at hs
+    rw [LinearMap.map_smulₛₗ, smul_eq_mul, RingHom.id_apply, hs]
+    done
+  rw [hg, ←Finset.sum_mul, ha, one_mul]
+  done
+  
   -- Metric.mem_closure_iff  
   -- 1. get basis for hyperplane
   -- 2. get a point in interior of Hi_
