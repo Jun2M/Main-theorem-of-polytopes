@@ -40,15 +40,26 @@ lemma Closed_Hpolytope {H : Set (Halfspace d)} (hH_ : H.Finite) : IsClosed (Hpol
   apply IsClosed.preimage (LinearMap.continuous_of_finiteDimensional Hi_.f.1)
   exact isClosed_Iic
 
-lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace d} : 
-  frontier Hi_.S = {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
-  have := ContinuousLinearMap.frontier_preimage (LinearMap.toContinuousLinearMap Hi_.f.1) (nontrivialdual_surj Hi_.f) (Set.Iic Hi_.α)
-  simp only [ne_eq, LinearMap.coe_toContinuousLinearMap', Set.nonempty_Ioi, frontier_Iic'] at this 
-  change frontier (Hi_.f.1 ⁻¹' {x | x ≤ Hi_.α}) = Hi_.f.1 ⁻¹' {Hi_.α} at this
-  rw [Hi_.h, this] ; clear this
-  unfold Set.preimage
-  simp only [ne_eq, Set.mem_singleton_iff]
-  done
+lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpace ℝ (Fin d)) : 
+  x ∈ Hpolytope hH_ ↔ ∀ Hi, Hi ∈ H_ → Hi.f.1 x ≤ Hi.α := by
+  constructor <;> intro h
+  · -- 1.
+    intro Hi HiH
+    unfold Hpolytope at h
+    rw [Set.mem_sInter] at h
+    specialize h Hi.S ⟨ Hi, HiH, rfl ⟩
+    rw [Hi.h, Set.mem_preimage, Set.mem_setOf] at h
+    exact h
+    done
+  · -- 2.
+    unfold Hpolytope
+    rw [Set.mem_sInter]
+    rintro _ ⟨ Hi_, hHi_, rfl ⟩
+    specialize h Hi_ hHi_
+    simp only
+    rw [Hi_.h, Set.mem_preimage, Set.mem_setOf]
+    exact h
+    done
 
 -- /-
 -- Lemma4.5. Let 𝑋 bean 𝐻-polytope in ℝ^𝑑 and 𝑥 ∈ 𝑋 . Let 𝐼 ⊆ {1,...,𝑛} be such that 𝑥 ∈ 𝐻𝑖 iff
@@ -83,8 +94,6 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
       exact hHi_
     refine ⟨ hxI, ?_ ⟩
     contrapose! hxEx
-
-    -- if not 0 dim, it much be more than 1 dim
 
     -- For all Hi ∉ I x, x is in the interior of Hi.S then we can fit a ball around x within Hi.S
     have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
@@ -209,45 +218,64 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
       exact fun hseg => ⟨ hseg.2 x1 (left_mem_segment ℝ x1 x2), hseg.2 x2 (right_mem_segment ℝ x1 x2) ⟩
     apply this; clear this
 
-    rw [← hinterx, Set.subset_sInter_iff]; clear hinterx
+    rw [← hinterx, Set.subset_sInter_iff]
     rintro HiS ⟨ Hi_, hHi_, rfl ⟩
     simp only
-    rw [frontierHalfspace_Hyperplane, Set.subset_def]
-    intro y hy
 
-    unfold Hpolytope at hx1 hx2
-    rw [Set.mem_sInter] at hx1 hx2
-    have := Set.mem_image_of_mem (·.S) (Set.mem_of_subset_of_mem (hI x).1 hHi_)
-    specialize hx1 Hi_.S this
-    specialize hx2 Hi_.S this
-    rw [(hI x).2, frontierHalfspace_Hyperplane, Set.mem_setOf ] at hHi_; clear this
+    have hfxα : Hi_.f.1 x = Hi_.α := by
+      have : x ∈ {x} := by
+        exact Set.mem_singleton x
+      rw [← hinterx, Set.mem_sInter] at this
+      specialize this (frontier Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
+      rw [frontierHalfspace_Hyperplane, Set.mem_setOf] at this
+      exact this
+    clear hinterx hxH
 
-    rw [Set.mem_setOf]
-    by_contra h
-    push_neg at h
+    -- unpacking the fact that x1, x2 are in Hpolytope
+    rw [mem_Hpolytope] at hx1 hx2
+    specialize hx1 Hi_ ((hI x).1 hHi_)
+    specialize hx2 Hi_ ((hI x).1 hHi_)
+    clear hI hHi_ I hH_ H_
 
-    suffices ∃ t' : ℝ, t' ∈ Set.Icc 0 1 ∧ Hi_.f.1 ((AffineMap.lineMap x1 x2) t') > Hi_.α by
-      rcases this with ⟨ t', ht', ht'α ⟩
-      have h' := Set.mem_of_subset_of_mem (Convex.segment_subset (Halfspace_convex Hi_) hx1 hx2) (?_ : (AffineMap.lineMap x1 x2) t' ∈ segment ℝ x1 x2)
-      rw [Halfspace_mem Hi_, ←not_lt ] at h'
-      exact h' ht'α 
+    -- Frontier of a halfspace is convex
+    rw [frontierHalfspace_Hyperplane]
+    have := Hyperplane_convex Hi_
+    rw [convex_iff_segment_subset] at this
+    apply this <;> 
+    clear this <;> 
+    rw [Set.mem_setOf] <;> 
+    by_contra h <;>
+    -- Since dual is linear map, if there is one end with less than α, with equal to α at some point in the middle (at x),
+    -- then the other end must be greater than α, contradition!
+    push_neg at h <;>
+    have hlt := lt_of_le_of_ne (by assumption) h <;> 
+    clear h
+    · -- If Hi_.f x1 < Hi_.α, then Hi_.f x2 > Hi_.α
+      rw [openSegment_eq_image', Set.mem_image] at hx
+      rcases hx with ⟨ t, ht, rfl ⟩
+      rw [Hi_.f.1.map_add, Hi_.f.1.map_smul] at hfxα 
 
-      rw [segment_eq_image_lineMap]
-      exact Set.mem_image_of_mem _ ht'
+      have : Hi_.f.1 x1 + t • Hi_.f.1 (x2 - x1) + (1-t) • Hi_.f.1 (x2 - x1) > Hi_.α := by
+        rw [hfxα, gt_iff_lt]
+        exact lt_add_of_le_of_pos (by linarith) <| (smul_pos_iff_of_pos (by linarith [ht.2])).mpr <|
+         (smul_pos_iff_of_pos ht.1).mp <| pos_of_lt_add_right <| hfxα.symm ▸ hlt
+
+      rw [add_assoc, ← add_smul, add_sub, add_comm t 1, add_sub_cancel, one_smul, ← Hi_.f.1.map_add, add_comm, sub_add_cancel] at this
+      linarith
       done
-    
-    cases' (lt_or_gt_of_ne h) with h h
-    · 
-      rw [←hHi_] at h
-      rcases (Metric.isOpen_iff.mp (sorry : IsOpen (openSegment ℝ x1 x2))) x hx with ⟨ ε, hε, hεx ⟩
-      rw [openSegment_eq_image_lineMap, Set.mem_image] at hx
-      rcases hx with ⟨ t', ht', ht'x ⟩
-      sorry
-      done 
-    · 
-      rw [segment_eq_image_lineMap, Set.mem_image] at hy
-      rcases hy with ⟨ t, ht, rfl ⟩
-      exact ⟨ t, ht, h ⟩ 
+    · -- If Hi_.f x2 < Hi_.α, then Hi_.f x1 > Hi_.α
+      rw [openSegment_symm, openSegment_eq_image', Set.mem_image] at hx
+      rcases hx with ⟨ t, ht, rfl ⟩
+      rw [Hi_.f.1.map_add, Hi_.f.1.map_smul] at hfxα 
+
+      have : Hi_.f.1 x2 + t • Hi_.f.1 (x1 - x2) + (1-t) • Hi_.f.1 (x1 - x2) > Hi_.α := by
+        rw [hfxα, gt_iff_lt]
+        exact lt_add_of_le_of_pos (by linarith) <| (smul_pos_iff_of_pos (by linarith [ht.2])).mpr <|
+         (smul_pos_iff_of_pos ht.1).mp <| pos_of_lt_add_right <| hfxα.symm ▸ hlt
+      
+      rw [add_assoc, ← add_smul, add_sub, add_comm t 1, add_sub_cancel, one_smul, ← Hi_.f.1.map_add, add_comm, sub_add_cancel] at this
+      linarith
+      done
   done
 
 

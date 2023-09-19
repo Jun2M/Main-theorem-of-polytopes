@@ -132,6 +132,20 @@ lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
   linarith
   done
 
+lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace d} : 
+  frontier Hi_.S = {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
+  have := ContinuousLinearMap.frontier_preimage (LinearMap.toContinuousLinearMap Hi_.f.1) (nontrivialdual_surj Hi_.f) (Set.Iic Hi_.α)
+  simp only [ne_eq, LinearMap.coe_toContinuousLinearMap', Set.nonempty_Ioi, frontier_Iic'] at this 
+  change frontier (Hi_.f.1 ⁻¹' {x | x ≤ Hi_.α}) = Hi_.f.1 ⁻¹' {Hi_.α} at this
+  rw [Hi_.h, this] ; clear this
+  unfold Set.preimage
+  simp only [ne_eq, Set.mem_singleton_iff]
+  done
+
+lemma Hyperplane_convex (Hi_ : Halfspace d) : 
+  Convex ℝ {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
+  exact @convex_hyperplane ℝ (EuclideanSpace ℝ (Fin d)) ℝ _ _ _ _ _ _ Hi_.f.1 (LinearMap.isLinear Hi_.f.1) Hi_.α
+  done
   -- Metric.mem_closure_iff  
   -- 1. get basis for hyperplane
   -- 2. get a point in interior of Hi_
