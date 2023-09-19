@@ -232,28 +232,30 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
         div_mul_cancel _ (by linarith), one_smul]
       done
 
-    -- For all Hi ∉ I x, x is in the interior of Hi.S then we can fit a ball around x within Hi.S
-    have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
-      unfold Hpolytope at hxH
-      have hxIcinterior : x ∈ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
-        rintro HiS ⟨ Hi_, hHi_, rfl ⟩ 
-        rw [Set.mem_diff, (hI x).2 Hi_, IsClosed.frontier_eq <| Halfspace_closed Hi_, Set.mem_diff] at hHi_
-        push_neg at hHi_
-        exact hHi_.2 <| hxH Hi_.S ⟨ Hi_, hHi_.1, rfl ⟩
+    -- v is in halfspaces not in I by being inside a suitably small ball around x
+    have hmemballmemIc : ∃ ε, ε > 0 ∧ ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_ \ I x → v ∈ Hi_.S := by
+      -- For all Hi ∉ I x, x is in the interior of Hi.S then we can fit a ball around x within Hi.S
+      have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
+        unfold Hpolytope at hxH
+        have hxIcinterior : x ∈ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
+          rintro HiS ⟨ Hi_, hHi_, rfl ⟩ 
+          rw [Set.mem_diff, (hI x).2 Hi_, IsClosed.frontier_eq <| Halfspace_closed Hi_, Set.mem_diff] at hHi_
+          push_neg at hHi_
+          exact hHi_.2 <| hxH Hi_.S ⟨ Hi_, hHi_.1, rfl ⟩
+        
+        have hIcinteriorOpen : IsOpen (⋂₀ ((fun x => interior x.S) '' (H_ \ I x))) := by
+          apply Set.Finite.isOpen_sInter (Set.Finite.image _ (Set.Finite.diff hH_ _))
+          exact fun _ ⟨ Hi_, _, h ⟩ => h ▸ isOpen_interior
+
+        rw [Metric.isOpen_iff] at hIcinteriorOpen
+        exact hIcinteriorOpen x hxIcinterior
       
-      have hIcinteriorOpen : IsOpen (⋂₀ ((fun x => interior x.S) '' (H_ \ I x))) := by
-        apply Set.Finite.isOpen_sInter (Set.Finite.image _ (Set.Finite.diff hH_ _))
-        exact fun _ ⟨ Hi_, _, h ⟩ => h ▸ isOpen_interior
-
-      rw [Metric.isOpen_iff] at hIcinteriorOpen
-      exact hIcinteriorOpen x hxIcinterior
-    rcases hball with ⟨ ε, hε, hball ⟩
-
-    have hmemballmemIc : ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_ \ I x → v ∈ Hi_.S := by
-      rintro v hv Hi_ hHi_
+      rcases hball with ⟨ ε, hε, hball ⟩
+      refine ⟨ ε, hε, fun v hv Hi_ hHi_ => ?_ ⟩
       apply interior_subset
       exact (Set.mem_sInter.mp <| hball hv) (interior Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
 
+    -- v is in halfspaces in I by being in the segment
     have hmemsegmemI : ∀ v, v ∈ segment ℝ ((2:ℝ) • x - y) y → ∀ Hi_, Hi_ ∈ I x → v ∈ Hi_.S := by
       rintro v hv Hi_ hHi_
       -- x & y are in the hyperplane
@@ -287,6 +289,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
     rw [mem_extremePoints]
     push_neg
     rintro hxH'
+    rcases hmemballmemIc with ⟨ ε, hε, hmemballmemIc ⟩
     rcases hxSegBallInterSeg ((2:ℝ) • x - y) y ε ⟨ hxyy, fun h => hyx h.2 ⟩ hε with ⟨ x1, x2, hmem, hsub, hne ⟩
     push_neg at hne ; clear hI hxH' hε hyx hy hxH hxyy
     unfold Hpolytope
