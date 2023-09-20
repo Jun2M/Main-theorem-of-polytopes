@@ -1,6 +1,7 @@
 import Mathlib.Analysis.Convex.Intrinsic
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Analysis.Convex.Independent
+import Mathlib.Analysis.InnerProductSpace.Dual
 -- import Pre
 
 
@@ -14,24 +15,22 @@ theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [Topological
     exact h.1.inter (ih h.2)
 
 -- Type for nonzero linear dual of EuclideanSpace ℝ (Fin d)
-def nontrivialdual (d : ℕ+) : Type := {f : (Module.Dual ℝ (EuclideanSpace ℝ (Fin d))) // f ≠ 0}
+def nontrivialdual (d : ℕ+) : Type := {f : (NormedSpace.Dual ℝ (EuclideanSpace ℝ (Fin d))) // f ≠ 0}
 
 lemma nontrivialdual_surj : ∀ f : nontrivialdual d, Function.Surjective f.val := by
   intros f x
   have h1 := f.2
   have h : ∃ v, f.1 v ≠ 0 := by
     contrapose! h1
-    change ∀ v, f.1 v = (0 : Module.Dual ℝ (EuclideanSpace ℝ (Fin d))) v at h1
-    ext v
-    exact h1 v
+    exact FunLike.ext _ _ h1
 
   rcases h with ⟨v, hv⟩
   use (x/f.1 v) • v 
-  rw [LinearMap.map_smulₛₗ, RingHom.id_apply, smul_eq_mul, div_mul_cancel x hv]
+  simp only [ne_eq, map_smul, smul_eq_mul]
+  rw [div_mul_cancel x hv]
   done
 
-lemma nontrivialdual_cont : ∀ f : nontrivialdual d, Continuous f.val := 
-  fun f => LinearMap.continuous_of_finiteDimensional f.val
+lemma nontrivialdual_cont : ∀ f : nontrivialdual d, Continuous f.val := fun f => f.1.cont
 
 -- Type for halfspaces of EuclideanSpace ℝ (Fin d)
 structure Halfspace (d : ℕ+) where
@@ -40,6 +39,18 @@ structure Halfspace (d : ℕ+) where
   S : Set (EuclideanSpace ℝ (Fin d)) := f.1 ⁻¹' {x | x ≤ α}
   h : S = f.1 ⁻¹' {x | x ≤ α}
 
+def Halfspace.mk' (f : nontrivialdual d) (α : ℝ) : Halfspace d := 
+  ⟨f, α, f.1 ⁻¹' {x | x ≤ α}, rfl⟩
+
+-- instance Halfspace.instSetLike {d : ℕ+} :
+--   SetLike (Halfspace d) (EuclideanSpace ℝ (Fin d)) where
+--   coe := Halfspace.S
+--   coe_injective' := by
+--     intro H1 H2
+    
+--     done
+--   done
+
 lemma Halfspace_mem (H_ : Halfspace d) : ∀ x, x ∈ H_.S ↔ H_.f.1 x ≤ H_.α := by
   intro x
   rw [H_.h]
@@ -47,11 +58,11 @@ lemma Halfspace_mem (H_ : Halfspace d) : ∀ x, x ∈ H_.S ↔ H_.f.1 x ≤ H_.�
 
 lemma Halfspace_convex (H_ : Halfspace d) : Convex ℝ H_.S := by
   rw [H_.h]
-  exact convex_halfspace_le (LinearMap.isLinear H_.f.1) H_.α
+  exact convex_halfspace_le (LinearMap.isLinear H_.f.1.1) H_.α
 
 lemma Halfspace_closed (H_ : Halfspace d) : IsClosed H_.S := by
   rw [H_.h]
-  exact IsClosed.preimage (LinearMap.continuous_of_finiteDimensional H_.f.1) isClosed_Iic
+  exact IsClosed.preimage (nontrivialdual_cont H_.f) isClosed_Iic
 
 lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
   -- affine span of a ball(simplex, in general) is entire
@@ -74,7 +85,7 @@ lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
 
 lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace d} : 
   frontier Hi_.S = {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
-  have := ContinuousLinearMap.frontier_preimage (LinearMap.toContinuousLinearMap Hi_.f.1) (nontrivialdual_surj Hi_.f) (Set.Iic Hi_.α)
+  have := ContinuousLinearMap.frontier_preimage Hi_.f.1 (nontrivialdual_surj Hi_.f) (Set.Iic Hi_.α)
   simp only [ne_eq, LinearMap.coe_toContinuousLinearMap', Set.nonempty_Ioi, frontier_Iic'] at this 
   change frontier (Hi_.f.1 ⁻¹' {x | x ≤ Hi_.α}) = Hi_.f.1 ⁻¹' {Hi_.α} at this
   rw [Hi_.h, this] ; clear this
@@ -92,13 +103,13 @@ lemma Hyperplane_affineClosed (Hi_ : Halfspace d) :
     → ∀ a : Fin n → ℝ, Finset.univ.sum a = 1 →  
     Finset.affineCombination ℝ Finset.univ s a ∈ {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
   intro s hs a ha
-  rw [Finset.affineCombination_eq_linear_combination _ _ _ ha, Set.mem_setOf, LinearMap.map_sum]
+  rw [Finset.affineCombination_eq_linear_combination _ _ _ ha, Set.mem_setOf, ContinuousLinearMap.map_sum]
   have hg : (fun i => Hi_.f.1 (a i • s i)) = fun i => a i * Hi_.α := by
     ext i
     rw [Set.range_subset_iff] at hs
     specialize hs i
     rw [Set.mem_setOf] at hs
-    rw [LinearMap.map_smulₛₗ, smul_eq_mul, RingHom.id_apply, hs]
+    rw [ContinuousLinearMap.map_smulₛₗ, smul_eq_mul, RingHom.id_apply, hs]
     done
   rw [hg, ←Finset.sum_mul, ha, one_mul]
   done

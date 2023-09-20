@@ -37,7 +37,7 @@ lemma Closed_Hpolytope {H : Set (Halfspace d)} (hH_ : H.Finite) : IsClosed (Hpol
   rintro _ ⟨ Hi_, _, rfl ⟩
   change IsClosed Hi_.S
   rw [Hi_.h]
-  apply IsClosed.preimage (LinearMap.continuous_of_finiteDimensional Hi_.f.1)
+  apply IsClosed.preimage (Hi_.f.1.cont)
   exact isClosed_Iic
 
 lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpace ℝ (Fin d)) : 
