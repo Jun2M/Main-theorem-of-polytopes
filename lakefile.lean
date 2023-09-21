@@ -12,6 +12,10 @@ lean_lib «chapter2» {
   -- add any library configuration options here
 }
 
+lean_lib «chapter3» {
+  -- add any library configuration options here
+}
+
 lean_lib «pre» {
   -- add any library configuration options here
 }

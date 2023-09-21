@@ -153,6 +153,10 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x
         ← add_assoc, ← add_smul, neg_add_self, zero_smul, zero_add]
       exact Ne.symm (ne_of_lt ht12)
   
+
+  -- intersection of convex is convex
+  -- convex of 1d is segment
+
   constructor
   · -- 1. main proof
     rw [Set.subset_inter_iff]
@@ -399,3 +403,6 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
   done
 
 
+-- dual is inner
+-- inner riesz inner repre riesz 
+-- double dual theorem

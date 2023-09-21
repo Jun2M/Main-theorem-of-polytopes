@@ -14,42 +14,42 @@ theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [Topological
     simp only [sInter_insert, ball_insert_iff] at h ⊢
     exact h.1.inter (ih h.2)
 
--- Type for nonzero linear dual of EuclideanSpace ℝ (Fin d)
-def nontrivialdual (d : ℕ+) : Type := {f : (NormedSpace.Dual ℝ (EuclideanSpace ℝ (Fin d))) // f ≠ 0}
+-- def closedUnder {T : Type} (f : Set T → Set T) (s : Set T) : Prop := 
+--   f s ⊆ s
 
-lemma nontrivialdual_surj : ∀ f : nontrivialdual d, Function.Surjective f.val := by
-  intros f x
-  have h1 := f.2
-  have h : ∃ v, f.1 v ≠ 0 := by
-    contrapose! h1
-    exact FunLike.ext _ _ h1
+-- notation:25 s " closedUnder " f => closedUnder f s
 
-  rcases h with ⟨v, hv⟩
-  use (x/f.1 v) • v 
-  simp only [ne_eq, map_smul, smul_eq_mul]
-  rw [div_mul_cancel x hv]
+-- Type for linear dual of EuclideanSpace ℝ (Fin d) with norm 1
+def unitSphereDual (d : ℕ+) : Type := {f : (NormedSpace.Dual ℝ (EuclideanSpace ℝ (Fin d))) // norm f = 1}
+
+lemma EquivUnitSphere : {p : EuclideanSpace ℝ (Fin d) // norm p = 1} ≃ₜ 
+  {f : (NormedSpace.Dual ℝ (EuclideanSpace ℝ (Fin d))) // norm f = 1} where
+  toFun := λ p => ⟨(InnerProductSpace.toDual _ _ p), ((LinearIsometryEquiv.norm_map (InnerProductSpace.toDual ℝ _) p.1) ▸ p.2)⟩
+  invFun := λ f => ⟨ (InnerProductSpace.toDual _ _).invFun f.1, (by simp; exact f.2)⟩
+  left_inv := λ p => by simp
+  right_inv := λ f => by simp
+
+lemma unitSphereDual_surj : ∀ f : unitSphereDual d, Function.Surjective f.val := by
+  intro f 
+  apply LinearMap.surjective_of_ne_zero
+  intro h
+  rw [← ContinuousLinearMap.coe_zero] at h
+  norm_cast at h
+  have := (h ▸ f.2)
+  simp only [norm_zero, zero_ne_one] at this 
   done
-
-lemma nontrivialdual_cont : ∀ f : nontrivialdual d, Continuous f.val := fun f => f.1.cont
+  
+lemma unitSphereDual_cont : ∀ f : unitSphereDual d, Continuous f.val := fun f => f.1.cont
 
 -- Type for halfspaces of EuclideanSpace ℝ (Fin d)
 structure Halfspace (d : ℕ+) where
-  f : nontrivialdual d
+  f : unitSphereDual d
   α : ℝ
   S : Set (EuclideanSpace ℝ (Fin d)) := f.1 ⁻¹' {x | x ≤ α}
   h : S = f.1 ⁻¹' {x | x ≤ α}
 
-def Halfspace.mk' (f : nontrivialdual d) (α : ℝ) : Halfspace d := 
-  ⟨f, α, f.1 ⁻¹' {x | x ≤ α}, rfl⟩
-
--- instance Halfspace.instSetLike {d : ℕ+} :
---   SetLike (Halfspace d) (EuclideanSpace ℝ (Fin d)) where
---   coe := Halfspace.S
---   coe_injective' := by
---     intro H1 H2
-    
---     done
---   done
+def Halfspace.mk1 (f : unitSphereDual d) (α : ℝ) : Halfspace d := 
+  ⟨ f, α, f.1 ⁻¹' {x | x ≤ α}, rfl⟩
 
 lemma Halfspace_mem (H_ : Halfspace d) : ∀ x, x ∈ H_.S ↔ H_.f.1 x ≤ H_.α := by
   intro x
@@ -62,20 +62,20 @@ lemma Halfspace_convex (H_ : Halfspace d) : Convex ℝ H_.S := by
 
 lemma Halfspace_closed (H_ : Halfspace d) : IsClosed H_.S := by
   rw [H_.h]
-  exact IsClosed.preimage (nontrivialdual_cont H_.f) isClosed_Iic
+  exact IsClosed.preimage (H_.f.1.cont) isClosed_Iic
 
 lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
   -- affine span of a ball(simplex, in general) is entire
   apply affineSpan_eq_top_of_nonempty_interior
   apply Set.Nonempty.mono (?_ : H_.f.1 ⁻¹' (Metric.ball (H_.α -1) (1/2)) ⊆ (interior ((convexHull ℝ) H_.S)))
   · -- preimage of ball is not empty as f is surjective
-    cases' nontrivialdual_surj H_.f (H_.α -1) with x hx
+    cases' unitSphereDual_surj H_.f (H_.α -1) with x hx
     use x
     rw [Set.mem_preimage, Metric.mem_ball, dist_sub_eq_dist_add_right, hx, sub_add_cancel, dist_self]
     linarith
     done
   -- this open set is subset of the halfspace
-  rw [IsOpen.subset_interior_iff (IsOpen.preimage (nontrivialdual_cont H_.f) Metric.isOpen_ball)]
+  rw [IsOpen.subset_interior_iff (IsOpen.preimage (unitSphereDual_cont H_.f) Metric.isOpen_ball)]
   apply subset_trans ?_ (subset_convexHull ℝ H_.S)
   intro x hx
   rw [Set.mem_preimage, Real.ball_eq_Ioo, Set.mem_Ioo] at hx
@@ -85,7 +85,7 @@ lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
 
 lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace d} : 
   frontier Hi_.S = {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
-  have := ContinuousLinearMap.frontier_preimage Hi_.f.1 (nontrivialdual_surj Hi_.f) (Set.Iic Hi_.α)
+  have := ContinuousLinearMap.frontier_preimage Hi_.f.1 (unitSphereDual_surj Hi_.f) (Set.Iic Hi_.α)
   simp only [ne_eq, LinearMap.coe_toContinuousLinearMap', Set.nonempty_Ioi, frontier_Iic'] at this 
   change frontier (Hi_.f.1 ⁻¹' {x | x ≤ Hi_.α}) = Hi_.f.1 ⁻¹' {Hi_.α} at this
   rw [Hi_.h, this] ; clear this
@@ -114,6 +114,7 @@ lemma Hyperplane_affineClosed (Hi_ : Halfspace d) :
   rw [hg, ←Finset.sum_mul, ha, one_mul]
   done
 
+-- theorem2_21 = geometric_hahn_banach_open_point?
 
 def IsFace (F X : Set (EuclideanSpace ℝ (Fin d))) : Prop := 
   Convex ℝ F ∧ IsClosed F ∧ IsExtreme ℝ X F
@@ -223,3 +224,4 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
     (x : EuclideanSpace ℝ (Fin d)) (hxEx : x ∈ Set.extremePoints ℝ X) : IsFace {x} X :=
     ⟨ convex_singleton _, isClosed_singleton, mem_extremePoints_iff_extreme_singleton.mp hxEx ⟩
 
+-- Theorem 2.34 = convex_hull_eq_union?

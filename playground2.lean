@@ -5,7 +5,23 @@ import «Main»
 
 
 
+-- instance Halfspace.instSetLike {d : ℕ+} :
+--   SetLike (Halfspace d) (EuclideanSpace ℝ (Fin d)) where
+--   coe := Halfspace.S
+--   coe_injective' := by
+--     intro H1 H2 hH12
+--     rcases H1 with ⟨⟨f1, hf1⟩, α1, S1, rfl⟩
+--     rcases H2 with ⟨⟨f2, hf2⟩, α2, S2, rfl⟩
+--     simp at hH12
+--     congr <;> rw [Set.ext_iff] at hH12
+    
+    -- unfold NormedSpace.Dual at f1 f2
+    -- rw [← LinearIsometryEquiv.map_eq_iff (InnerProductSpace.toDual ℝ _).symm]
+    -- let x := (LinearIsometryEquiv.symm (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin ↑d)))) f1
+    -- have hx : f1 = (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin ↑d))) x := by simp
 
+    -- rw [hx, @InnerProductSpace.toDual_apply ℝ (EuclideanSpace ℝ (Fin ↑d)) _ _ _ _ x] at hH12
+    -- done
 
 
 
