@@ -6,8 +6,9 @@ import «Main»
 variable {d : ℕ+}
 
 
+-- origin condition not needed?
 lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite)
-  (horigin : 0 ∈ interior (Vpolytope hS)) : ∃ (H : Set (Halfspace d)) (h : H.Finite), 
+  : ∃ (H : Set (Halfspace d)) (h : H.Finite), 
   Hpolytope h = polarDual (Vpolytope hS) ∧ 0 ∈ Hpolytope h := by
   -- Last statment follows from polarDual_origin
   suffices hHeqVdual : ∃ (H : Set (Halfspace d)) (h : H.Finite), Hpolytope h = polarDual (Vpolytope hS) from by
@@ -17,6 +18,7 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     exact polarDual_origin (Vpolytope hS)
     done
   
+  -- main proof
   use pointDual '' (Subtype.val ⁻¹' (S \ {0}))
   use (by 
     apply Set.Finite.image
@@ -26,19 +28,10 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     exact Set.Finite.diff hS {0}
     done)
   apply subset_antisymm
-  · 
-    /-For the other direction, we use the Minkowski-Carathéodory Theorem 2.34. If 0≠𝑦 ∈𝑋∗, then
-    ⟨𝑦,𝑥⟩≤1 (all𝑥 ∈𝑋 )
-    However, since 𝑥 ↦ ⟨𝑦,𝑥⟩ is a non-zero linear form (and 𝑋 is full-dimensional), it takes its max-
-    imum over 𝑋 on some proper face and hence at an extremepoint of 𝑋 (Exercise4.1below).
-    Hence, for any 𝑥 ∈𝑋 , and 𝑦 in the rhs, we have
-    ⟨𝑦,𝑥⟩≤( max 1≤𝑖≤𝑛 ⟨𝑦,𝑥𝑖⟩) ≤ 1
-    so 𝑦 ∈ 𝑋 ∗. This is the other containment we needed to prove.
-    For compactness, we note that if 𝑋∗ is non-compact, then by closedness and convexity, there
-    is some 𝑦 ∈𝑋 ∗ so that 𝛼𝑦 ∈𝑋∗ for all 𝛼 ≥0. The only way this could happen is if ⟨𝑦,𝑥𝑖⟩ ≤ 0 for
-    all 𝑥𝑖, contradicting that 0 is in the interior of 𝑋.
-    -/
+  · -- hard direction
+    -- take x from Hpolytope of nonzero elements of S
     intro x hx
+    -- Special treatment for x = 0
     cases' (em (x = 0)) with h h
     ·
       rw [h]
@@ -47,10 +40,38 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     rw [mem_Hpolytope] at hx
     rw [mem_polarDual]
     intro p hp 
-    
 
+    /- 
+      Magic: Since inner product is commutative over ℝ,
+      DON'T imagine as x in each of the dual halfspaces of each s in S,
+      instead, imagine S sitting inside the dual halfspace of x.
+      halfspaces are convex hence Vpolytope of S sits inside the halfspace. QED
+    -/
+    let x' := (⟨ x, h ⟩ : { p : EuclideanSpace ℝ (Fin ↑d) // p ≠ 0 })
+    have hx' : ↑x' = x := rfl
+    rw [← hx', real_inner_comm, ←mem_pointDual]
+
+    suffices h : S ⊆ (pointDual x').S from by
+      apply convexHull_min h <| Halfspace_convex (pointDual x')
+      exact hp
+
+    -- Since x is in dual halfspace of each s in S, s is in dual halfspace of x
+    intro s hs
+    cases' (em (s = 0)) with h h
+    ·
+      exact h ▸ pointDual_origin x'
+
+    specialize hx (pointDual ⟨ s, h ⟩) (Set.mem_image_of_mem _ ?_)
+    · 
+      rw [Set.mem_preimage, Subtype.coe_mk, Set.mem_diff]
+      exact ⟨ hs, h ⟩
+  
+    rw [← Halfspace_mem, mem_pointDual, Subtype.coe_mk] at hx
+    rw [mem_pointDual, Subtype.coe_mk, real_inner_comm]
+    exact hx
     done
-  · 
+  
+  · -- easy direction, simply need to show it is intersection of smaller sets
     apply Set.sInter_subset_sInter
     apply Set.image_subset
     apply Set.image_subset

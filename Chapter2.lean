@@ -42,6 +42,7 @@ lemma unitSphereDual_surj : ∀ f : unitSphereDual d, Function.Surjective f.val 
 lemma unitSphereDual_cont : ∀ f : unitSphereDual d, Continuous f.val := fun f => f.1.cont
 
 -- Type for halfspaces of EuclideanSpace ℝ (Fin d)
+-- For completeness, it is define with a linear map with norm 1 and a real number bound
 structure Halfspace (d : ℕ+) where
   f : unitSphereDual d
   α : ℝ

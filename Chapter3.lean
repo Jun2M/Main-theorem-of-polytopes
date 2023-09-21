@@ -7,6 +7,7 @@ variable {d : ℕ+}
 -- noncomputable def stdbasisℝd : Basis (Fin d) ℝ (EuclideanSpace ℝ (Fin d)) :=
 --   Pi.basisFun ℝ (Fin d)
 
+-- Given non-zero vector p, define the halfspace of vectors x such that inner p x ≤ 1
 noncomputable def pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : Halfspace d :=
   Halfspace.mk1 ⟨ (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)), (by
   simp only [ne_eq, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real]
@@ -14,18 +15,30 @@ noncomputable def pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
   rw [← this]
   apply norm_smul_inv_norm
   rw [ne_eq, AddEquivClass.map_eq_zero_iff]
-  exact p.2) ⟩ 1
+  exact p.2) ⟩ (norm p.1)⁻¹
 
-lemma pointDual.α (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : (pointDual p).α = 1 := by rfl
+lemma pointDual.α (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : (pointDual p).α = (norm p.1)⁻¹ := by rfl
 
 lemma pointDual.h (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
-  (pointDual p).S = (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)) ⁻¹' {x | x ≤ 1} := by rfl
+  (pointDual p).S = (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)) ⁻¹' {x | x ≤ (norm p.1)⁻¹} := by rfl
 
 lemma pointDual_origin (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
   (0 : EuclideanSpace ℝ (Fin d)) ∈ (pointDual p).S := by
   rw [pointDual.h, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real, Set.preimage_setOf_eq, 
-    Set.mem_setOf_eq, map_zero]
-  exact zero_le_one
+    Set.mem_setOf_eq, map_zero, ← one_div]
+  apply le_of_lt
+  rw [div_pos_iff]
+  left
+  exact ⟨ zero_lt_one, by rw [norm_pos_iff]; exact p.2 ⟩
+  done
+
+lemma mem_pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
+  ∀ x, x ∈ (pointDual p).S ↔ inner p.1 x ≤ (1:ℝ) := by
+  intro x
+  rw [pointDual.h, Set.mem_preimage, InnerProductSpace.toDual_apply, Set.mem_setOf, 
+    inner_smul_left, IsROrC.conj_to_real, ← mul_le_mul_left (by rw [norm_pos_iff]; exact p.2 : 0 < norm p.1), 
+    ← mul_assoc, mul_inv_cancel (norm_ne_zero_iff.mpr p.2), one_mul]
+  done
 
 noncomputable def polarDual (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) := 
   ⋂₀ ((·.S) '' (pointDual '' (Subtype.val ⁻¹' X)))
@@ -54,7 +67,7 @@ lemma polarDual_origin (X : Set (EuclideanSpace ℝ (Fin d))) :
   exact pointDual_origin p
 
 lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace ℝ (Fin d)}:
-  v ∈ polarDual X ↔ ∀ x ∈ X, inner ((norm x)⁻¹ • x) v ≤ (1:ℝ) := by
+  v ∈ polarDual X ↔ ∀ x ∈ X, inner x v ≤ (1:ℝ) := by
   unfold polarDual
   rw [Set.mem_sInter]
 
@@ -63,7 +76,7 @@ lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace �
     intro h x hx
     cases' (em (x = 0)) with hx0 hx0
     · 
-      rw [hx0, smul_zero, inner_zero_left]
+      rw [hx0, inner_zero_left]
       exact zero_le_one
     
     specialize h (pointDual ⟨ x, hx0 ⟩).S ?_
@@ -73,9 +86,7 @@ lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace �
       rw [Set.mem_preimage]
       exact hx
 
-    rw [pointDual.h] at h
-    simp only [map_smulₛₗ, map_inv₀, IsROrC.conj_to_real, Set.preimage_setOf_eq, Set.mem_setOf_eq] at h 
-    rw [InnerProductSpace.smul_left, IsROrC.conj_to_real, ← InnerProductSpace.toDual_apply]
+    rw [mem_pointDual] at h
     exact h
     done
   · -- 2.
@@ -85,9 +96,7 @@ lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace �
     rw [Set.mem_image] at hHi_
     rcases hHi_ with ⟨ p, hp, rfl ⟩
     specialize h p.1 hp
-    rw [pointDual.h]
-    simp only [ne_eq, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real, Set.preimage_setOf_eq, Set.mem_setOf_eq]
-    rw [InnerProductSpace.smul_left, IsROrC.conj_to_real, ← InnerProductSpace.toDual_apply] at h
+    rw [mem_pointDual]
     exact h
     done
   done
