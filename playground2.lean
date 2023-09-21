@@ -1,9 +1,64 @@
 import «Chapter2» 
+import «Chapter3» 
 import «Main»
 
 
+variable {d : ℕ+}
 
 
+lemma polarDual_compact {X : Set (EuclideanSpace ℝ (Fin d))} (hXcpt : IsCompact X) (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) :
+  IsCompact (polarDual X) := by
+  sorry
+  done
+
+
+lemma doublePolarDual_self {X : Set (EuclideanSpace ℝ (Fin d))} (hXcpt : IsCompact X)
+  (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) : polarDual (polarDual X) = X := by
+  sorry
+  done
+
+-- Extreme points of H polytope is finite
+
+-- lemma line_of_pair_linearmap  {k : Type u_1} {V : Type u_2} [Ring 𝕜] [AddCommGroup V] [Module 𝕜 V] (v1 v2 : V) 
+--   (f : V →ₗ[𝕜] 𝕜) : f v1 = a ∧ f v2 = a ↔ f '' (Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2)) = {a} := by
+--   constructor
+--   · 
+--     rintro ⟨ h1, h2 ⟩
+--     ext x
+--     constructor
+--     · -- 1.
+--       rintro ⟨ v, hv, rfl ⟩
+--       rw [Set.mem_singleton_iff]
+--       rw [Set.mem_range] at hv
+--       rcases hv with ⟨ t, rfl ⟩
+--       rw [AffineMap.lineMap_apply_module]
+--       rw [f.map_add, f.map_smul, h1, f.map_smul, h2, ← add_smul, sub_add_cancel, one_smul]
+--       done
+--     · -- 2.
+--       rintro rfl; clear h2
+--       rw [Set.mem_image]
+--       refine ⟨ v1, ?_, h1 ⟩
+--       rw [Set.mem_range]
+--       use (0:𝕜)
+--       rw [AffineMap.lineMap_apply_zero]
+--       done
+--   · 
+--     rintro h
+--     have h1 : f v1 ∈ f '' Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2) := by
+--       apply Set.mem_image_of_mem
+--       rw [Set.mem_range]
+--       exact ⟨ 0, AffineMap.lineMap_apply_zero v1 v2 ⟩ 
+--     rw [h] at h1
+
+--     have h2 : f v2 ∈ f '' Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2) := by
+--       apply Set.mem_image_of_mem
+--       rw [Set.mem_range]
+--       exact ⟨ 1, AffineMap.lineMap_apply_one v1 v2 ⟩ 
+--     rw [h] at h2
+
+--     rw [Set.mem_singleton_iff] at h1 h2
+--     exact ⟨ h1, h2 ⟩
+--   done
 
 -- instance Halfspace.instSetLike {d : ℕ+} :
 --   SetLike (Halfspace d) (EuclideanSpace ℝ (Fin d)) where

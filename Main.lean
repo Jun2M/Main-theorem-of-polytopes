@@ -12,28 +12,28 @@ Let 𝑋 be a closed convex subset of ℝ^𝑑. Then:
 Theorem : Every 𝑉-polytope is an 𝐻-polytope, and every compact 𝐻-polytope is a 𝑉-polytope.
 -/
 
-def Vpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (_ : S.Finite) : 
+def Vpolytope (S : Finset (EuclideanSpace ℝ (Fin d))) : 
   Set (EuclideanSpace ℝ (Fin d)) := convexHull ℝ S
 
-def Hpolytope {H_ : Set (Halfspace d)} (_ : H_.Finite) : Set (EuclideanSpace ℝ (Fin d)) :=
-  ⋂₀ ((·.S) '' H_)
+def Hpolytope (H_ : Finset (Halfspace d)) : Set (EuclideanSpace ℝ (Fin d)) :=
+  ⋂₀ ((·.S) '' H_.toSet)
 
-lemma Convex_Vpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) : 
-  Convex ℝ (Vpolytope hS) := convex_convexHull ℝ S
+lemma Convex_Vpolytope (S : Finset (EuclideanSpace ℝ (Fin d))) : 
+  Convex ℝ (Vpolytope S) := convex_convexHull ℝ S.toSet
 
-lemma Closed_Vpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) : 
-  IsClosed (Vpolytope hS) := Set.Finite.isClosed_convexHull hS
+lemma Closed_Vpolytope (S : Finset (EuclideanSpace ℝ (Fin d))) : 
+  IsClosed (Vpolytope S) := Set.Finite.isClosed_convexHull (Finset.finite_toSet S)
 
-lemma Compact_Vpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) : 
-  IsCompact (Vpolytope hS) := Set.Finite.isCompact_convexHull hS
+lemma Compact_Vpolytope (S : Finset (EuclideanSpace ℝ (Fin d))) : 
+  IsCompact (Vpolytope S) := Set.Finite.isCompact_convexHull (Finset.finite_toSet S)
 
-lemma Convex_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) : Convex ℝ (Hpolytope hH_) := by
+lemma Convex_Hpolytope (H_ : Finset (Halfspace d)) : Convex ℝ (Hpolytope H_) := by
   apply convex_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
   simp only [ne_eq, Set.preimage_setOf_eq]
   exact Halfspace_convex Hi_
 
-lemma Closed_Hpolytope {H : Set (Halfspace d)} (hH_ : H.Finite) : IsClosed (Hpolytope hH_) := by
+lemma Closed_Hpolytope (H_ : Finset (Halfspace d)) : IsClosed (Hpolytope H_) := by
   apply isClosed_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
   change IsClosed Hi_.S
@@ -41,8 +41,8 @@ lemma Closed_Hpolytope {H : Set (Halfspace d)} (hH_ : H.Finite) : IsClosed (Hpol
   apply IsClosed.preimage (Hi_.f.1.cont)
   exact isClosed_Iic
 
-lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpace ℝ (Fin d)) : 
-  x ∈ Hpolytope hH_ ↔ ∀ Hi, Hi ∈ H_ → Hi.f.1 x ≤ Hi.α := by
+lemma mem_Hpolytope (H_ : Finset (Halfspace d)) (x : EuclideanSpace ℝ (Fin d)) : 
+  x ∈ Hpolytope H_ ↔ ∀ Hi, Hi ∈ H_.toSet → Hi.f.1 x ≤ Hi.α := by
   constructor <;> intro h
   · -- 1.
     intro Hi HiH
@@ -61,47 +61,6 @@ lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpa
     rw [Hi_.h, Set.mem_preimage, Set.mem_setOf]
     exact h
     done
-
-lemma line_of_pair_linearmap  {k : Type u_1} {V : Type u_2} [Ring 𝕜] [AddCommGroup V] [Module 𝕜 V] (v1 v2 : V) 
-  (f : V →ₗ[𝕜] 𝕜) : f v1 = a ∧ f v2 = a ↔ f '' (Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2)) = {a} := by
-  constructor
-  · 
-    rintro ⟨ h1, h2 ⟩
-    ext x
-    constructor
-    · -- 1.
-      rintro ⟨ v, hv, rfl ⟩
-      rw [Set.mem_singleton_iff]
-      rw [Set.mem_range] at hv
-      rcases hv with ⟨ t, rfl ⟩
-      rw [AffineMap.lineMap_apply_module]
-      rw [f.map_add, f.map_smul, h1, f.map_smul, h2, ← add_smul, sub_add_cancel, one_smul]
-      done
-    · -- 2.
-      rintro rfl; clear h2
-      rw [Set.mem_image]
-      refine ⟨ v1, ?_, h1 ⟩
-      rw [Set.mem_range]
-      use (0:𝕜)
-      rw [AffineMap.lineMap_apply_zero]
-      done
-  · 
-    rintro h
-    have h1 : f v1 ∈ f '' Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2) := by
-      apply Set.mem_image_of_mem
-      rw [Set.mem_range]
-      exact ⟨ 0, AffineMap.lineMap_apply_zero v1 v2 ⟩ 
-    rw [h] at h1
-
-    have h2 : f v2 ∈ f '' Set.range (@AffineMap.lineMap 𝕜 _ _ _ _ _ _ v1 v2) := by
-      apply Set.mem_image_of_mem
-      rw [Set.mem_range]
-      exact ⟨ 1, AffineMap.lineMap_apply_one v1 v2 ⟩ 
-    rw [h] at h2
-
-    rw [Set.mem_singleton_iff] at h1 h2
-    exact ⟨ h1, h2 ⟩
-  done
    
 
 -- As a ball around x is convex, it must contain a segment with x in its interior
@@ -193,16 +152,18 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x
   · -- 2. the smaller segment is not a singleton
     push_neg
     intro h1
-    rcases (em (x1 = x)) with (rfl | hne1) <;> norm_num <;> intro h <;> rw [sub_eq_zero] at h <;> 
+    rcases (em (x1 = x)) with (rfl | _) <;> norm_num <;> intro h <;> rw [sub_eq_zero] at h <;> 
     cases' h with h h <;> try exact (ne_of_lt ht2pos) h.symm 
     all_goals {exact hx12 h.symm}
     done
   done
 
 
-lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : EuclideanSpace ℝ (Fin d) → Set (Halfspace d)) 
-  (hI : ∀ x, I x ⊆ H_ ∧ ∀ Hi, Hi ∈ I x ↔ x ∈ frontier Hi.S) :
-  ∀ x ∈ Hpolytope hH_, x ∈ Set.extremePoints ℝ (Hpolytope hH_) ↔ ⋂₀ ((frontier ·.S) '' I x) = {x} := by
+lemma ExtremePointsofHpolytope (H_ : Finset (Halfspace d)) 
+  (I : EuclideanSpace ℝ (Fin d) → Finset (Halfspace d)) 
+  (hI : ∀ x, I x ⊆ H_ ∧ ∀ Hi, Hi ∈ (I x).toSet ↔ x ∈ frontier Hi.S) :
+  ∀ x ∈ Hpolytope H_, x ∈ Set.extremePoints ℝ (Hpolytope H_) ↔ 
+    ⋂₀ ((frontier ·.S) '' (I x).toSet) = {x} := by
   rintro x hxH
   constructor
   · -- 1.
@@ -214,7 +175,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
     
     -- some useful results
     have hxyy : x ∈ openSegment ℝ ((2:ℝ) • x - y) y := by
-      clear hyx hy hxH hI hH_ I
+      clear hyx hy hxH hI I
       rw [openSegment_eq_image, Set.mem_image]
       refine ⟨ 1/2, by norm_num, ?_ ⟩
       rw [(by norm_num : (1:ℝ) - 1 / 2 = 1 / 2), smul_sub, sub_add_cancel, smul_smul, 
@@ -222,18 +183,19 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
       done
 
     -- v is in halfspaces not in I by being inside a suitably small ball around x
-    have hmemballmemIc : ∃ ε, ε > 0 ∧ ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_ \ I x → v ∈ Hi_.S := by
+    have hmemballmemIc : ∃ ε, ε > 0 ∧ ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_.toSet \ (I x).toSet → 
+      v ∈ Hi_.S := by
       -- For all Hi ∉ I x, x is in the interior of Hi.S then we can fit a ball around x within Hi.S
-      have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
+      have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ (I x).toSet)) := by
         unfold Hpolytope at hxH
-        have hxIcinterior : x ∈ ⋂₀ ((fun x => interior x.S) '' (H_ \ I x)) := by
+        have hxIcinterior : x ∈ ⋂₀ ((fun x => interior x.S) '' (H_ \ (I x).toSet)) := by
           rintro HiS ⟨ Hi_, hHi_, rfl ⟩ 
           rw [Set.mem_diff, (hI x).2 Hi_, IsClosed.frontier_eq <| Halfspace_closed Hi_, Set.mem_diff] at hHi_
           push_neg at hHi_
           exact hHi_.2 <| hxH Hi_.S ⟨ Hi_, hHi_.1, rfl ⟩
         
-        have hIcinteriorOpen : IsOpen (⋂₀ ((fun x => interior x.S) '' (H_ \ I x))) := by
-          apply Set.Finite.isOpen_sInter (Set.Finite.image _ (Set.Finite.diff hH_ _))
+        have hIcinteriorOpen : IsOpen (⋂₀ ((fun x => interior x.S) '' (H_.toSet \ I x))) := by
+          apply Set.Finite.isOpen_sInter (Set.Finite.image _ (Set.Finite.diff (Finset.finite_toSet H_) _))
           exact fun _ ⟨ Hi_, _, h ⟩ => h ▸ isOpen_interior
 
         rw [Metric.isOpen_iff] at hIcinteriorOpen
@@ -245,7 +207,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
       exact (Set.mem_sInter.mp <| hball hv) (interior Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
 
     -- v is in halfspaces in I by being in the segment
-    have hmemsegmemI : ∀ v, v ∈ segment ℝ ((2:ℝ) • x - y) y → ∀ Hi_, Hi_ ∈ I x → v ∈ Hi_.S := by
+    have hmemsegmemI : ∀ v, v ∈ segment ℝ ((2:ℝ) • x - y) y → ∀ Hi_, Hi_ ∈ (I x).toSet → v ∈ Hi_.S := by
       rintro v hv Hi_ hHi_
       -- x & y are in the hyperplane
       rw [Set.mem_sInter] at hy
@@ -297,7 +259,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
         apply openSegment_subset_segment
         exact Set.mem_of_mem_inter_left hsub
       · 
-        have : Hi_ ∈ H_ \ I x := by
+        have : Hi_ ∈ H_.toSet \ I x := by
           rw [Set.mem_diff]
           exact ⟨ hHi_, hninI ⟩
         exact hmemballmemIc x1 (Set.mem_of_mem_inter_right hsub) Hi_ this
@@ -310,7 +272,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
         apply openSegment_subset_segment
         exact Set.mem_of_mem_inter_left hsub
       ·
-        have : Hi_ ∈ H_ \ I x := by
+        have : Hi_ ∈ H_.toSet \ I x := by
           rw [Set.mem_diff]
           exact ⟨ hHi_, hninI ⟩
         exact hmemballmemIc x2 (Set.mem_of_mem_inter_right hsub) Hi_ this
@@ -344,7 +306,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
     rw [mem_Hpolytope] at hx1 hx2
     specialize hx1 Hi_ ((hI x).1 hHi_)
     specialize hx2 Hi_ ((hI x).1 hHi_)
-    clear hI hHi_ I hH_ H_
+    clear hI hHi_ I H_
 
     -- Frontier of a halfspace is convex
     rw [frontierHalfspace_Hyperplane]
@@ -389,26 +351,30 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (I : E
 
 
 -- origin condition not needed?
-lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite)
-  : ∃ (H : Set (Halfspace d)) (h : H.Finite), 
-  Hpolytope h = polarDual (Vpolytope hS) ∧ 0 ∈ Hpolytope h := by
-  -- Last statment follows from polarDual_origin
-  suffices hHeqVdual : ∃ (H : Set (Halfspace d)) (h : H.Finite), Hpolytope h = polarDual (Vpolytope hS) from by
-    rcases hHeqVdual with ⟨H, hH, hHeqVdual⟩
-    use H, hH, hHeqVdual
+lemma DualOfVpolytope_compactHpolytope (S : Finset (EuclideanSpace ℝ (Fin d))) (hS0 : 0 ∈ S) : 
+  ∃ (H : Finset (Halfspace d)), Hpolytope H = polarDual (Vpolytope S) ∧ 0 ∈ Hpolytope H ∧ 
+  IsCompact (Hpolytope H) := by
+  -- Membership of 0 statment follows from polarDual_origin
+  -- Compactness follows from compactness of Vpolytope
+  suffices hHeqVdual : ∃ (H : Finset (Halfspace d)), Hpolytope H = polarDual (Vpolytope S) from by
+    rcases hHeqVdual with ⟨H, hHeqVdual⟩
+    have hHcpt : IsCompact (Hpolytope H) := sorry
+    use H, hHeqVdual
+    refine ⟨ ?_, hHcpt ⟩
     rw [hHeqVdual]
-    exact polarDual_origin (Vpolytope hS)
+    exact polarDual_origin (Vpolytope S)
     done
   
   -- main proof
-  use pointDual '' (Subtype.val ⁻¹' (S \ {0}))
-  use (by 
+  have : Set.Finite (pointDual '' (Subtype.val ⁻¹' (S.toSet \ {0}))) := by
     apply Set.Finite.image
     apply Set.Finite.preimage _ _
     apply Set.injOn_of_injective
     exact Subtype.val_injective
-    exact Set.Finite.diff hS {0}
-    done)
+    exact Set.Finite.diff S.finite_toSet {0}
+    done
+  rcases Set.Finite.exists_finset_coe this with ⟨ H, hH ⟩
+  use H
   apply subset_antisymm
   · -- hard direction
     -- take x from Hpolytope of nonzero elements of S
@@ -417,7 +383,7 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     cases' (em (x = 0)) with h h
     ·
       rw [h]
-      exact polarDual_origin (Vpolytope hS)
+      exact polarDual_origin (Vpolytope S)
     
     rw [mem_Hpolytope] at hx
     rw [mem_polarDual]
@@ -433,7 +399,7 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     have hx' : ↑x' = x := rfl
     rw [← hx', real_inner_comm, ←mem_pointDual]
 
-    suffices h : S ⊆ (pointDual x').S from by
+    suffices h : S.toSet ⊆ (pointDual x').S from by
       apply convexHull_min h <| Halfspace_convex (pointDual x')
       exact hp
 
@@ -443,19 +409,20 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     ·
       exact h ▸ pointDual_origin x'
 
-    specialize hx (pointDual ⟨ s, h ⟩) (Set.mem_image_of_mem _ ?_)
+    specialize hx (pointDual ⟨ s, h ⟩) ?_
     · 
-      rw [Set.mem_preimage, Subtype.coe_mk, Set.mem_diff]
-      exact ⟨ hs, h ⟩
+      rw [hH]
+      exact Set.mem_image_of_mem pointDual ⟨ hs, h ⟩
   
     rw [← Halfspace_mem, mem_pointDual, Subtype.coe_mk] at hx
     rw [mem_pointDual, Subtype.coe_mk, real_inner_comm]
     exact hx
     done
   
-  · -- easy direction, simply need to show it is intersection of smaller sets
+  · -- easy direction, simply need to show it is set intersection of a smaller set
     apply Set.sInter_subset_sInter
     apply Set.image_subset
+    rw [hH]
     apply Set.image_subset
     rw [Set.preimage_subset_preimage_iff]
     apply subset_trans (by simp)  <| subset_convexHull _ _

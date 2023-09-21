@@ -2,6 +2,7 @@ import Mathlib.Analysis.Convex.Intrinsic
 import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Analysis.Convex.Independent
 import Mathlib.Analysis.InnerProductSpace.Dual
+import Mathlib.Analysis.Convex.KreinMilman
 -- import Pre
 
 
@@ -225,4 +226,4 @@ lemma lemma2_27 {F X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hX
     (x : EuclideanSpace ℝ (Fin d)) (hxEx : x ∈ Set.extremePoints ℝ X) : IsFace {x} X :=
     ⟨ convex_singleton _, isClosed_singleton, mem_extremePoints_iff_extreme_singleton.mp hxEx ⟩
 
--- Theorem 2.34 = convex_hull_eq_union?
+-- Theorem 2.34 = closure_convexHull_extremePoints
