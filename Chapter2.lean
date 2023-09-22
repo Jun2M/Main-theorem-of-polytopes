@@ -15,10 +15,8 @@ theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [Topological
     simp only [sInter_insert, ball_insert_iff] at h ⊢
     exact h.1.inter (ih h.2)
 
--- def closedUnder {T : Type} (f : Set T → Set T) (s : Set T) : Prop := 
---   f s ⊆ s
-
--- notation:25 s " closedUnder " f => closedUnder f s
+-- instance EuclideanSpace.instDecidableEqEuclideanSpace : DecidableEq (EuclideanSpace ℝ (Fin d)) := by
+--   exact @DFinsupp.instDecidableEqDFinsupp (Fin d) (λ i => ℝ) _ _ _
 
 -- Type for linear dual of EuclideanSpace ℝ (Fin d) with norm 1
 def unitSphereDual (d : ℕ+) : Type := {f : (NormedSpace.Dual ℝ (EuclideanSpace ℝ (Fin d))) // norm f = 1}
@@ -36,8 +34,8 @@ lemma unitSphereDual_surj : ∀ f : unitSphereDual d, Function.Surjective f.val 
   intro h
   rw [← ContinuousLinearMap.coe_zero] at h
   norm_cast at h
-  have := (h ▸ f.2)
-  simp only [norm_zero, zero_ne_one] at this 
+  let a := (h ▸ f.2)
+  simp only [norm_zero, zero_ne_one] at a 
   done
   
 lemma unitSphereDual_cont : ∀ f : unitSphereDual d, Continuous f.val := fun f => f.1.cont

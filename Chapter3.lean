@@ -40,6 +40,12 @@ lemma mem_pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) :
     ← mul_assoc, mul_inv_cancel (norm_ne_zero_iff.mpr p.2), one_mul]
   done
 
+lemma pointDual_comm (p q : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
+  p.1 ∈ (pointDual q).S ↔ q.1 ∈ (pointDual p).S := by
+  rw [mem_pointDual, mem_pointDual, real_inner_comm]
+  done
+
+
 noncomputable def polarDual (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) := 
   ⋂₀ ((·.S) '' (pointDual '' (Subtype.val ⁻¹' X)))
 
@@ -101,11 +107,37 @@ lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace �
     done
   done
 
+lemma polarDual_comm (X Y : Set (EuclideanSpace ℝ (Fin d))) : 
+  X ⊆ polarDual Y ↔ Y ⊆ polarDual X := by
+  rw [Set.subset_def, Set.subset_def]
+  constructor
+  · -- 1.
+    intro h y hy
+    rw [mem_polarDual]
+    intro x hx
+    rw [real_inner_comm]
+    specialize h x hx
+    rw [mem_polarDual] at h
+    specialize h y hy
+    exact h
+    done
+  · -- 2.
+    intro h x hx
+    rw [mem_polarDual]
+    intro y hy
+    rw [real_inner_comm]
+    specialize h y hy
+    rw [mem_polarDual] at h
+    specialize h x hx
+    exact h
+    done
+  done
 
--- lemma doublePolarDual_self {X : Set (EuclideanSpace ℝ (Fin d))} (hXcpt : IsCompact X)
---   (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) : polarDual (polarDual X) = X := by
 
---   done
+lemma doublePolarDual_self {X : Set (EuclideanSpace ℝ (Fin d))} (hXcpt : IsCompact X)
+  (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) : X ⊆ polarDual (polarDual X) := by
+  rw [polarDual_comm]
+  done
 
 -- Equivalence of ℝ^d and its dual
 -- InnerProductSpace.toDual

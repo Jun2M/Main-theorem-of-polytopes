@@ -4,42 +4,62 @@ import «Main»
 
 
 variable {d : ℕ+}
+open Pointwise
 
-
-lemma Vpolytope_of_Hpolytope : ∀ (H : Finset (Halfspace d)), IsCompact (Hpolytope H) → ∃ (S : Finset (EuclideanSpace ℝ (Fin d))),
-  Hpolytope H = Vpolytope S := by
-  intro H hHcpt
-  have := closure_convexHull_extremePoints hHcpt (Convex_Hpolytope H)
-  have hExHFinite: Set.Finite <| Set.extremePoints ℝ (Hpolytope H) := sorry
-  rcases Set.Finite.exists_finset_coe hExHFinite with ⟨ ExH, hExH ⟩
-  have hVcl := Closed_Vpolytope ExH
+lemma Vpolytope_of_Hpolytope : ∀ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), IsCompact (Hpolytope hH_) → 
+  ∃ (S : Set (EuclideanSpace ℝ (Fin d))) (hS : S.Finite), Hpolytope hH_ = Vpolytope hS := by
+  intro H_ hH_ hHcpt
+  have := closure_convexHull_extremePoints hHcpt (Convex_Hpolytope hH_)
+  have hExHFinite: Set.Finite <| Set.extremePoints ℝ (Hpolytope hH_) := by
+    have := ExtremePointsofHpolytope hH_ 
+    sorry
+    done
+  -- rcases Set.Finite.exists_finset_coe hExHFinite with ⟨ ExH, hExH ⟩
+  have hVcl := Closed_Vpolytope hExHFinite
   rw [IsClosed.closure_eq ] at this
   rw [← this]
-  use ExH
-  rw [← hExH]
+  use Set.extremePoints ℝ (Hpolytope hH_)
+  use hExHFinite
   rfl
-  rw [← hExH]
   exact hVcl
   done
   
 theorem MainTheoremOfPolytopes : 
-  (∀ (S : Finset (EuclideanSpace ℝ (Fin d))), ∃ (H : Finset (Halfspace d)), Hpolytope H = Vpolytope S) ∧ 
-  ∀ (H : Finset (Halfspace d)), IsCompact (Hpolytope H) → ∃ (S : Finset (EuclideanSpace ℝ (Fin d))),
-  Hpolytope H = Vpolytope S := by
+  (∀ (S : Set (EuclideanSpace ℝ (Fin d))) (hS : S.Finite), ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), 
+    Hpolytope hH_ = Vpolytope hS) ∧ 
+  ∀ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), IsCompact (Hpolytope hH_) → 
+  ∃ (S : Set (EuclideanSpace ℝ (Fin d))) (hS : S.Finite), Hpolytope hH_ = Vpolytope hS := by
   constructor
   · -- 1.
     intro S
-    rcases DualOfVpolytope_compactHpolytope S with ⟨ H, hH, hH0 ⟩
-    have : IsCompact (Hpolytope H) := by
-      rw [hH]
-      exact 
+    cases' (em (interior (Vpolytope hS)).Nonempty) with hVpolytopeIntEmpty hVpolytopeIntNonempty
+    · -- Interior is nonempty 
+      let S_ := S.toSet + {-hVpolytopeIntEmpty.some}
+      let hS_ : S_.Finite := by
+        apply Set.Finite.add
+        exact S.finite_toSet
+        exact Set.finite_singleton _
+        done
+
+      have h := hVpolytopeIntEmpty.some_mem
+      -- rw [← Set.Finite.coe_toFinset hS_] at h
+      have : 0 ∈ interior (Vpolytope (Set.Finite.toFinset hS_)) := by
+        
+        done
+      rcases DualOfVpolytope_compactHpolytope hS_.toFinset this with ⟨ H, hH, hH0, hHcpt ⟩
+      rcases Vpolytope_of_Hpolytope H hHcpt with ⟨ S', hS' ⟩
+      have : 0 ∈ interior (Vpolytope S') := by
+        rw [← hS']
+        apply 
+        done
+      rcases DualOfVpolytope_compactHpolytope S' this with ⟨ H', hH', hH'0, hH'cpt ⟩
+      use H'
+      rw [hH', ← hS', hH]
+      sorry
       done
-    rcases Vpolytope_of_Hpolytope H this with ⟨ S', hS' ⟩
-    rcases DualOfVpolytope_compactHpolytope S' with ⟨ H', hH', hH'0 ⟩
-    use H'
-    rw [hH', ← hS', hH]
-    sorry
-    done
+    · -- Interior is empty
+      sorry
+      done
   · -- 2.
     exact Vpolytope_of_Hpolytope
   done

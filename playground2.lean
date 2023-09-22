@@ -6,12 +6,6 @@ import «Main»
 variable {d : ℕ+}
 
 
-lemma polarDual_compact {X : Set (EuclideanSpace ℝ (Fin d))} (hXcpt : IsCompact X) (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) :
-  IsCompact (polarDual X) := by
-  sorry
-  done
-
-
 lemma doublePolarDual_self {X : Set (EuclideanSpace ℝ (Fin d))} (hXcpt : IsCompact X)
   (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) : polarDual (polarDual X) = X := by
   sorry
