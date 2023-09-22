@@ -360,14 +360,17 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
   done
 
 
--- origin condition not needed?
-lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite)
-  : ∃ (H : Set (Halfspace d)) (h : H.Finite), 
-  Hpolytope h = polarDual (Vpolytope hS) ∧ 0 ∈ Hpolytope h := by
+lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) 
+  (hS0 : 0 ∈ interior (Vpolytope hS))
+  : ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), 
+  Hpolytope hH_ = polarDual (Vpolytope hS) ∧ 0 ∈ Hpolytope hH_ ∧ IsCompact (Hpolytope hH_):= by
   -- Last statment follows from polarDual_origin
-  suffices hHeqVdual : ∃ (H : Set (Halfspace d)) (h : H.Finite), Hpolytope h = polarDual (Vpolytope hS) from by
-    rcases hHeqVdual with ⟨H, hH, hHeqVdual⟩
-    use H, hH, hHeqVdual
+  suffices hHeqVdual : ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), 
+    Hpolytope hH_ = polarDual (Vpolytope hS) from by
+    rcases hHeqVdual with ⟨H_, hH_, hHeqVdual⟩
+    have hHcpt : IsCompact (Hpolytope hH_) := sorry
+    use H_, hH_, hHeqVdual
+    refine ⟨ ?_, hHcpt ⟩
     rw [hHeqVdual]
     exact polarDual_origin (Vpolytope hS)
     done
