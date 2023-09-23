@@ -16,7 +16,7 @@ def Vpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (_ : S.Finite) :
   Set (EuclideanSpace ℝ (Fin d)) := convexHull ℝ S
 
 def Hpolytope {H_ : Set (Halfspace d)} (_ : H_.Finite) : Set (EuclideanSpace ℝ (Fin d)) :=
-  ⋂₀ ((·.S) '' H_)
+  ⋂₀ (SetLike.coe '' H_)
 
 lemma Convex_Vpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) : 
   Convex ℝ (Vpolytope hS) := convex_convexHull ℝ S
@@ -36,7 +36,7 @@ lemma Convex_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) : Convex ℝ (
 lemma Closed_Hpolytope {H : Set (Halfspace d)} (hH_ : H.Finite) : IsClosed (Hpolytope hH_) := by
   apply isClosed_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
-  change IsClosed Hi_.S
+  change IsClosed Hi_
   rw [Hi_.h]
   apply IsClosed.preimage (Hi_.f.1.cont)
   exact isClosed_Iic
@@ -48,8 +48,8 @@ lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpa
     intro Hi HiH
     unfold Hpolytope at h
     rw [Set.mem_sInter] at h
-    specialize h Hi.S ⟨ Hi, HiH, rfl ⟩
-    rw [Hi.h, Set.mem_preimage, Set.mem_setOf] at h
+    specialize h Hi ⟨ Hi, HiH, rfl ⟩
+    rw [Halfspace_mem] at h
     exact h
     done
   · -- 2.
@@ -57,8 +57,7 @@ lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpa
     rw [Set.mem_sInter]
     rintro _ ⟨ Hi_, hHi_, rfl ⟩
     specialize h Hi_ hHi_
-    simp only
-    rw [Hi_.h, Set.mem_preimage, Set.mem_setOf]
+    rw [Halfspace_mem]
     exact h
     done
    
@@ -159,11 +158,11 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x
   done
 
 
-def Hpolytope.I {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpace ℝ (Fin d)) : Set (Halfspace d) :=
-  { Hi_ ∈ H_ | x ∈ frontier Hi_.S }
+def Hpolytope.I (H_ : Set (Halfspace d)) (x : EuclideanSpace ℝ (Fin d)) : Set (Halfspace d) :=
+  { Hi_ ∈ H_ | x ∈ (frontier <| SetLike.coe Hi_) }
 
-lemma Hpolytope.I_mem {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpace ℝ (Fin d)) : 
-  ∀ Hi_, Hi_ ∈ Hpolytope.I hH_ x ↔ Hi_ ∈ H_ ∧ x ∈ frontier Hi_.S := by
+lemma Hpolytope.I_mem {H_ : Set (Halfspace d)} (x : EuclideanSpace ℝ (Fin d)) : 
+  ∀ Hi_, Hi_ ∈ Hpolytope.I H_ x ↔ Hi_ ∈ H_ ∧ x ∈ (frontier <| SetLike.coe Hi_) := by
   rintro Hi_ 
   unfold I
   rw [Set.mem_setOf]
@@ -171,7 +170,7 @@ lemma Hpolytope.I_mem {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanS
 
 lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
   ∀ x ∈ Hpolytope hH_, x ∈ Set.extremePoints ℝ (Hpolytope hH_) ↔ 
-  ⋂₀ ((frontier ·.S) '' Hpolytope.I hH_ x) = {x} := by
+  ⋂₀ ((frontier <| SetLike.coe ·) '' Hpolytope.I H_ x) = {x} := by
   rintro x hxH
   constructor
   · -- 1.
@@ -192,19 +191,19 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
       done
 
     -- v is in halfspaces not in I by being inside a suitably small ball around x
-    have hmemballmemIc : ∃ ε, ε > 0 ∧ ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_ \ Hpolytope.I hH_ x → 
-      v ∈ Hi_.S := by
-      -- For all Hi ∉ I x, x is in the interior of Hi.S then we can fit a ball around x within Hi.S
-      have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((fun x => interior x.S) '' (H_ \ Hpolytope.I hH_ x)) := by
+    have hmemballmemIc : ∃ ε, ε > 0 ∧ ∀ v, v ∈ Metric.ball x ε → ∀ Hi_, Hi_ ∈ H_ \ Hpolytope.I H_ x → 
+      v ∈ SetLike.coe Hi_ := by
+      -- For all Hi ∉ I x, x is in the interior of Hi then we can fit a ball around x within Hi
+      have hball : ∃ ε, ε > 0 ∧ Metric.ball x ε ⊆ ⋂₀ ((interior <| SetLike.coe ·) '' (H_ \ Hpolytope.I H_ x)) := by
         unfold Hpolytope at hxH
-        have hxIcinterior : x ∈ ⋂₀ ((fun x => interior x.S) '' (H_ \ Hpolytope.I hH_ x)) := by
+        have hxIcinterior : x ∈ ⋂₀ ((interior <| SetLike.coe ·) '' (H_ \ Hpolytope.I H_ x)) := by
           rintro HiS ⟨ Hi_, hHi_, rfl ⟩ 
           rw [Set.mem_diff, Hpolytope.I_mem, IsClosed.frontier_eq <| Halfspace_closed Hi_, 
             Set.mem_diff] at hHi_
           push_neg at hHi_
-          exact hHi_.2 hHi_.1 <| hxH Hi_.S ⟨ Hi_, hHi_.1, rfl ⟩
+          exact hHi_.2 hHi_.1 <| hxH Hi_ ⟨ Hi_, hHi_.1, rfl ⟩
         
-        have hIcinteriorOpen : IsOpen (⋂₀ ((fun x => interior x.S) '' (H_ \ Hpolytope.I hH_ x))) := by
+        have hIcinteriorOpen : IsOpen (⋂₀ ((interior <| SetLike.coe ·) '' (H_ \ Hpolytope.I H_ x))) := by
           apply Set.Finite.isOpen_sInter (Set.Finite.image _ (Set.Finite.diff hH_ _))
           exact fun _ ⟨ Hi_, _, h ⟩ => h ▸ isOpen_interior
 
@@ -214,18 +213,18 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
       rcases hball with ⟨ ε, hε, hball ⟩
       refine ⟨ ε, hε, fun v hv Hi_ hHi_ => ?_ ⟩
       apply interior_subset
-      exact (Set.mem_sInter.mp <| hball hv) (interior Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
+      exact (Set.mem_sInter.mp <| hball hv) (interior <| SetLike.coe Hi_) ⟨ Hi_, hHi_, rfl ⟩
 
     -- v is in halfspaces in I by being in the segment
-    have hmemsegmemI : ∀ v, v ∈ segment ℝ ((2:ℝ) • x - y) y → ∀ Hi_, Hi_ ∈ Hpolytope.I hH_ x → v ∈ Hi_.S := by
+    have hmemsegmemI : ∀ v, v ∈ segment ℝ ((2:ℝ) • x - y) y → ∀ Hi_, Hi_ ∈ Hpolytope.I H_ x → v ∈ SetLike.coe Hi_ := by
       rintro v hv Hi_ hHi_
       -- x & y are in the hyperplane
       rw [Set.mem_sInter] at hy
-      specialize hy (frontier Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
+      specialize hy (frontier <| SetLike.coe Hi_) ⟨ Hi_, hHi_, rfl ⟩
       have hHi_2 := hHi_.2
       rw [frontierHalfspace_Hyperplane] at hy hHi_2
 
-      -- v ∈ segment ℝ ((2:ℝ) • x - y) y ⊆ frontier Hi_.S ⊆ Hi_.S
+      -- v ∈ segment ℝ ((2:ℝ) • x - y) y ⊆ frontier Hi_ ⊆ Hi_
       apply IsClosed.frontier_subset <| Halfspace_closed Hi_
       rw [frontierHalfspace_Hyperplane]
       apply Set.mem_of_mem_of_subset hv
@@ -263,26 +262,26 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
 
     · -- x1 ∈ Hpolytope hH_
       specialize hsub (left_mem_segment ℝ x1 x2)
-      rcases (em (Hi_ ∈ Hpolytope.I hH_ x)) with (hinI | hninI)
+      rcases (em (Hi_ ∈ Hpolytope.I H_ x)) with (hinI | hninI)
       · 
         apply hmemsegmemI x1 ?_ Hi_ hinI
         apply openSegment_subset_segment
         exact Set.mem_of_mem_inter_left hsub
       · 
-        have : Hi_ ∈ H_ \ Hpolytope.I hH_ x := by
+        have : Hi_ ∈ H_ \ Hpolytope.I H_ x := by
           rw [Set.mem_diff]
           exact ⟨ hHi_, hninI ⟩
         exact hmemballmemIc x1 (Set.mem_of_mem_inter_right hsub) Hi_ this
       done
     · -- x2 ∈ Hpolytope hH_
       specialize hsub (right_mem_segment ℝ x1 x2)
-      rcases (em (Hi_ ∈ Hpolytope.I hH_ x)) with (hinI | hninI)
+      rcases (em (Hi_ ∈ Hpolytope.I H_ x)) with (hinI | hninI)
       · 
         apply hmemsegmemI x2 ?_ Hi_ hinI
         apply openSegment_subset_segment
         exact Set.mem_of_mem_inter_left hsub
       ·
-        have : Hi_ ∈ H_ \ Hpolytope.I hH_ x := by
+        have : Hi_ ∈ H_ \ Hpolytope.I H_ x := by
           rw [Set.mem_diff]
           exact ⟨ hHi_, hninI ⟩
         exact hmemballmemIc x2 (Set.mem_of_mem_inter_right hsub) Hi_ this
@@ -307,7 +306,7 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
       have : x ∈ {x} := by
         exact Set.mem_singleton x
       rw [← hinterx, Set.mem_sInter] at this
-      specialize this (frontier Hi_.S) ⟨ Hi_, hHi_, rfl ⟩
+      specialize this (frontier <| SetLike.coe Hi_) ⟨ Hi_, hHi_, rfl ⟩
       rw [frontierHalfspace_Hyperplane, Set.mem_setOf] at this
       exact this
     clear hinterx hxH
@@ -405,7 +404,7 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     have hx' : ↑x' = x := rfl
     rw [← hx', real_inner_comm, ←mem_pointDual]
 
-    suffices h : S ⊆ (pointDual x').S from by
+    suffices h : S ⊆ SetLike.coe (pointDual x') from by
       apply convexHull_min h <| Halfspace_convex (pointDual x')
       exact hp
 

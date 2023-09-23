@@ -6,32 +6,7 @@ import «Main»
 variable {d : ℕ+}
 
 
-lemma Halfspace_translation.injective (x : EuclideanSpace ℝ (Fin d)) : 
-  Function.Injective (Halfspace_translation x) := by
-  intro H1 H2 h
-  rw [SetLike.ext_iff]
-  intro y
-  rw [SetLike.ext_iff] at h
-  specialize h y
-  
-  rw [← SetLike.mem_coe, ← SetLike.mem_coe, SetLike.coe, Halfspace.SetLike] at h
-  simp only at h 
-  rw [Halfspace_translation.h, Halfspace_translation.h, Set.mem_image, Set.mem_image] at h
-  apply Halfspace.mk
-  simp only [Halfspace.mk1, Halfspace_translation] at H1 H2
-  have H3 : H1.f.1 x = H2.f.1 x := by
-    rw [H1.h, H2.h]
-    simp only [Set.preimage_setOf_eq, Set.image_add_right, map_add, map_neg, add_neg_le_iff_le_add]
-    done
-  have H4 : H1.f.1 = H2.f.1 := by
-    apply LinearMap.ext
-    intro y
-    have H5 : y + (H1.f.1 x) = y + (H2.f.1 x) := by rw [H3]
-    rw [← H1.h, ← H2.h] at H5
-    simp only [Set.preimage_setOf_eq, Set.image_add_right, map_add, map_neg, add_neg_le_iff_le_add] at H5
-    exact H5
-    done
-  exact Subtype.eq H4
+
 
 
 -- Extreme points of H polytope is finite

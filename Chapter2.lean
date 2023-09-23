@@ -47,15 +47,15 @@ lemma unitSphereDual_cont : ∀ f : unitSphereDual d, Continuous f.val := fun f 
 structure Halfspace (d : ℕ+) where
   f : {f : (NormedSpace.Dual ℝ (EuclideanSpace ℝ (Fin d))) // norm f = 1}
   α : ℝ
-  S : Set (EuclideanSpace ℝ (Fin d)) := f.1 ⁻¹' {x | x ≤ α}
-  h : S = f.1 ⁻¹' {x | x ≤ α}
+
+def Halfspace.S (H_ : Halfspace d) : Set (EuclideanSpace ℝ (Fin d)) := H_.f.1 ⁻¹' {x | x ≤ H_.α}
 
 instance Halfspace.SetLike (d : ℕ+) : SetLike (Halfspace d) (EuclideanSpace ℝ (Fin d)) where
   coe := Halfspace.S
   coe_injective' := by
     intro H1 H2 h
-    cases' H1 with f1 α1 S1 h1
-    cases' H2 with f2 α2 S2 h2
+    cases' H1 with f1 α1
+    cases' H2 with f2 α2
     simp only [Halfspace.S] at h
 
     let p1 := (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin ↑d))).symm f1.1
@@ -89,15 +89,15 @@ instance Halfspace.SetLike (d : ℕ+) : SetLike (Halfspace d) (EuclideanSpace �
         left
         exact ⟨ inv_pos.mpr <| norm_pos_iff.mpr hvnonzero, sub_neg.mpr ((real_inner_comm p1 p2) ▸ hinnerlt1) ⟩
       
-      have hv'1out : ∃ M1 : ℝ, ∀ m > M1, (m • v') ∉ S1 := by
+      have hv'1out : ∃ M1 : ℝ, ∀ m > M1, (m • v') ∉ f1 ⁻¹' {x | x ≤ α1} := by
         use α1 / f1.1 v'
         intro m hm hmem
-        rw [h1, Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, ← le_div_iff hv'1] at hmem
+        rw [Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, ← le_div_iff hv'1] at hmem
         exact not_lt_of_le hmem hm
-      have hv'2in : ∃ M2 : ℝ, ∀ m > M2, (m • v') ∈ S2 := by
+      have hv'2in : ∃ M2 : ℝ, ∀ m > M2, (m • v') ∈ f2 ⁻¹' {x | x ≤ α2} := by
         use α2 / f2.1 v'
         intro m hm
-        rw [h2, Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul] 
+        rw [Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul] 
         have : m * f2.1 v' ≤ α2 / f2.1 v' * f2.1 v' := by
           rw [← neg_le_neg_iff, ← mul_neg, ← mul_neg, mul_le_mul_right (neg_pos_of_neg hv'2)]
           exact le_of_lt hm
@@ -131,35 +131,34 @@ instance Halfspace.SetLike (d : ℕ+) : SetLike (Halfspace d) (EuclideanSpace �
     rcases (max_choice α1 α2) with hmax1 | hmax2
     · 
       left
-      rw [hmax1, h1, h2, Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, 
+      rw [hmax1, Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, 
         Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, ← hfeq, hf1p1, mul_one]
       rw [max_eq_left_iff] at hmax1
       exact ⟨ le_refl _, not_le_of_gt <| lt_of_le_of_ne hmax1 h.symm ⟩
     · 
       right
-      rw [hmax2, h1, h2, Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, 
+      rw [hmax2, Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, 
         Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, ← hfeq, hf1p1, mul_one]
       rw [max_eq_right_iff] at hmax2
       exact ⟨ le_refl _, not_le_of_gt <| lt_of_le_of_ne hmax2 h ⟩
     done
 
-def Halfspace.mk1 (f : unitSphereDual d) (α : ℝ) : Halfspace d := 
-  ⟨ f, α, f.1 ⁻¹' {x | x ≤ α}, rfl⟩
+def Halfspace.h (H_ : Halfspace d) : ↑H_ = H_.f.1 ⁻¹' {x |  x ≤ H_.α} := rfl
 
-lemma Halfspace_mem (H_ : Halfspace d) : ∀ x, x ∈ H_.S ↔ H_.f.1 x ≤ H_.α := by
+lemma Halfspace_mem (H_ : Halfspace d) : ∀ x, x ∈ (SetLike.coe H_) ↔ H_.f.1 x ≤ H_.α := by
   intro x
   rw [H_.h]
-  exact Iff.rfl
+  rfl
 
-lemma Halfspace_convex (H_ : Halfspace d) : Convex ℝ H_.S := by
+lemma Halfspace_convex (H_ : Halfspace d) : Convex ℝ (SetLike.coe H_) := by
   rw [H_.h]
   exact convex_halfspace_le (LinearMap.isLinear H_.f.1.1) H_.α
 
-lemma Halfspace_closed (H_ : Halfspace d) : IsClosed H_.S := by
+lemma Halfspace_closed (H_ : Halfspace d) : IsClosed (SetLike.coe H_) := by
   rw [H_.h]
   exact IsClosed.preimage (H_.f.1.cont) isClosed_Iic
 
-lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
+lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ (SetLike.coe H_) = ⊤ := by
   -- affine span of a ball(simplex, in general) is entire
   apply affineSpan_eq_top_of_nonempty_interior
   apply Set.Nonempty.mono (?_ : H_.f.1 ⁻¹' (Metric.ball (H_.α -1) (1/2)) ⊆ (interior ((convexHull ℝ) H_.S)))
@@ -171,7 +170,7 @@ lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
     done
   -- this open set is subset of the halfspace
   rw [IsOpen.subset_interior_iff (IsOpen.preimage (unitSphereDual_cont H_.f) Metric.isOpen_ball)]
-  apply subset_trans ?_ (subset_convexHull ℝ H_.S)
+  apply subset_trans ?_ (subset_convexHull ℝ (SetLike.coe H_))
   intro x hx
   rw [Set.mem_preimage, Real.ball_eq_Ioo, Set.mem_Ioo] at hx
   rw [Halfspace_mem H_]
@@ -179,41 +178,41 @@ lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ H_.S = ⊤ := by
   done
 
 noncomputable def Halfspace_translation (x : EuclideanSpace ℝ (Fin d)) (H_ : Halfspace d) : Halfspace d := 
-  Halfspace.mk1 H_.f (H_.α + (H_.f.1 x))
+  Halfspace.mk H_.f (H_.α + (H_.f.1 x))
 
 lemma Halfspace_translation.h (H_ : Halfspace d) (x : EuclideanSpace ℝ (Fin d)) : 
-  (Halfspace_translation x H_).S = (fun v => v + x) '' H_.S := by
-  unfold Halfspace_translation Halfspace.mk1
-  rw [Halfspace.h, Halfspace.h, Set.preimage_setOf_eq]
+  (Halfspace_translation x H_) = (fun v => v + x) '' H_ := by
+  unfold Halfspace_translation
+  rw [Halfspace.h, Halfspace.h]
   simp only [Set.preimage_setOf_eq, Set.image_add_right, map_add, map_neg, add_neg_le_iff_le_add]
   done  
 
--- lemma Halfspace_translation.injective (x : EuclideanSpace ℝ (Fin d)) : 
---   Function.Injective (Halfspace_translation x) := by
---   intro H1 H2 h
---   unfold Halfspace_translation Halfspace.mk1 at h
---   simp at h
---   apply Halfspace.mk
---   simp only [Halfspace.mk1, Halfspace_translation] at H1 H2
---   have H3 : H1.f.1 x = H2.f.1 x := by
---     rw [H1.h, H2.h]
---     simp only [Set.preimage_setOf_eq, Set.image_add_right, map_add, map_neg, add_neg_le_iff_le_add]
---     done
---   have H4 : H1.f.1 = H2.f.1 := by
---     apply LinearMap.ext
---     intro y
---     have H5 : y + (H1.f.1 x) = y + (H2.f.1 x) := by rw [H3]
---     rw [← H1.h, ← H2.h] at H5
---     simp only [Set.preimage_setOf_eq, Set.image_add_right, map_add, map_neg, add_neg_le_iff_le_add] at H5
---     exact H5
---     done
---   exact Subtype.eq H4
+lemma Halfspace_translation.injective (x : EuclideanSpace ℝ (Fin d)) : 
+  Function.Injective (Halfspace_translation x) := by
+  intro H1 H2 h
+  rw [SetLike.ext_iff]
+  intro y
+  rw [SetLike.ext_iff] at h
+  specialize h (y + x)
+  
+  rw [← SetLike.mem_coe, ← SetLike.mem_coe] at h
+  rw [Halfspace_translation.h, Halfspace_translation.h, Set.mem_image, Set.mem_image] at h
+  constructor <;> intro H
+  · -- 1.
+    rcases (h.mp (by exact ⟨ y, H, rfl ⟩ : ∃ x_1, x_1 ∈ H1 ∧ x_1 + x = y + x)) with ⟨ x_1, hx_1, hx_1x ⟩
+    simp at hx_1x
+    exact hx_1x ▸ hx_1
+  · -- 2.
+    rcases (h.mpr (by exact ⟨ y, H, rfl ⟩ : ∃ x_1, x_1 ∈ H2 ∧ x_1 + x = y + x)) with ⟨ x_1, hx_1, hx_1x ⟩
+    simp at hx_1x
+    exact hx_1x ▸ hx_1
+  done
 
 lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace d} : 
-  frontier Hi_.S = {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
+  frontier Hi_ = {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by
   have := ContinuousLinearMap.frontier_preimage Hi_.f.1 (unitSphereDual_surj Hi_.f) (Set.Iic Hi_.α)
   simp only [ne_eq, LinearMap.coe_toContinuousLinearMap', Set.nonempty_Ioi, frontier_Iic'] at this 
-  change frontier (Hi_.f.1 ⁻¹' {x | x ≤ Hi_.α}) = Hi_.f.1 ⁻¹' {Hi_.α} at this
+  change frontier ( Hi_.f.1 ⁻¹' {x | x ≤ Hi_.α}) = Hi_.f.1 ⁻¹' {Hi_.α} at this
   rw [Hi_.h, this] ; clear this
   unfold Set.preimage
   simp only [ne_eq, Set.mem_singleton_iff]

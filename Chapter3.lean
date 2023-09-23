@@ -9,7 +9,7 @@ variable {d : ℕ+}
 
 -- Given non-zero vector p, define the halfspace of vectors x such that inner p x ≤ 1
 noncomputable def pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : Halfspace d :=
-  Halfspace.mk1 ⟨ (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)), (by
+  Halfspace.mk ⟨ (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)), (by
   simp only [ne_eq, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real]
   have : norm ((InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin ↑d))) ↑p) = norm p.1 := by simp
   rw [← this]
@@ -20,10 +20,10 @@ noncomputable def pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
 lemma pointDual.α (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : (pointDual p).α = (norm p.1)⁻¹ := by rfl
 
 lemma pointDual.h (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
-  (pointDual p).S = (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)) ⁻¹' {x | x ≤ (norm p.1)⁻¹} := by rfl
+  (pointDual p) = (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)) ⁻¹' {x | x ≤ (norm p.1)⁻¹} := by rfl
 
 lemma pointDual_origin (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
-  (0 : EuclideanSpace ℝ (Fin d)) ∈ (pointDual p).S := by
+  (0 : EuclideanSpace ℝ (Fin d)) ∈ (SetLike.coe <| pointDual p) := by
   rw [pointDual.h, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real, Set.preimage_setOf_eq, 
     Set.mem_setOf_eq, map_zero, ← one_div]
   apply le_of_lt
@@ -33,7 +33,7 @@ lemma pointDual_origin (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) :
   done
 
 lemma mem_pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
-  ∀ x, x ∈ (pointDual p).S ↔ inner p.1 x ≤ (1:ℝ) := by
+  ∀ x, x ∈ (SetLike.coe <| pointDual p) ↔ inner p.1 x ≤ (1:ℝ) := by
   intro x
   rw [pointDual.h, Set.mem_preimage, InnerProductSpace.toDual_apply, Set.mem_setOf, 
     inner_smul_left, IsROrC.conj_to_real, ← mul_le_mul_left (by rw [norm_pos_iff]; exact p.2 : 0 < norm p.1), 
@@ -41,13 +41,13 @@ lemma mem_pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) :
   done
 
 lemma pointDual_comm (p q : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
-  p.1 ∈ (pointDual q).S ↔ q.1 ∈ (pointDual p).S := by
+  p.1 ∈ (SetLike.coe <| pointDual q) ↔ q.1 ∈ (SetLike.coe <| pointDual p) := by
   rw [mem_pointDual, mem_pointDual, real_inner_comm]
   done
 
 
 noncomputable def polarDual (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) := 
-  ⋂₀ ((·.S) '' (pointDual '' (Subtype.val ⁻¹' X)))
+  ⋂₀ (SetLike.coe '' (pointDual '' (Subtype.val ⁻¹' X)))
 
 lemma polarDual_closed (X : Set (EuclideanSpace ℝ (Fin d))) : IsClosed (polarDual X) := by
   apply isClosed_sInter
@@ -85,7 +85,7 @@ lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace �
       rw [hx0, inner_zero_left]
       exact zero_le_one
     
-    specialize h (pointDual ⟨ x, hx0 ⟩).S ?_
+    specialize h (SetLike.coe <| pointDual ⟨ x, hx0 ⟩) ?_
     · 
       apply Set.mem_image_of_mem
       apply Set.mem_image_of_mem

@@ -14,7 +14,7 @@ lemma Vpolytope_of_Hpolytope : ∀ {H_ : Set (Halfspace d)} (hH_ : H_.Finite), I
   have hExHFinite: Set.Finite <| Set.extremePoints ℝ (Hpolytope hH_) := by
     have := ExtremePointsofHpolytope hH_ 
 
-    let f := fun T : Set (Halfspace d) => ⋂₀ ((fun x => frontier x.S) '' T)
+    let f := fun T : Set (Halfspace d) => ⋂₀ ((frontier <| SetLike.coe · ) '' T)
     let g : EuclideanSpace ℝ (Fin ↑d) ↪ Set (EuclideanSpace ℝ (Fin ↑d)) :=
       ⟨ fun x : EuclideanSpace ℝ (Fin ↑d) => Set.singleton x, Set.singleton_injective ⟩     
     
@@ -72,9 +72,11 @@ theorem MainTheoremOfPolytopes :
 
       rcases Hpolytope_of_Vpolytope_0interior hS' this with ⟨ H_', hH_', hH_'eq ⟩
       let H_ := (Halfspace_translation hVpolytopeIntEmpty.some) '' H_'
-      have hH_ : H_.Finite := by exact Set.Finite.image (Halfspace_translation hVpolytopeIntEmpty.some).Injective hH_'
-      use H_' 
-      use hH_'
+      have hH_ : H_.Finite := Set.Finite.image _ hH_'
+      
+      use H_
+      use hH_
+      
       rw [hH_'eq, ←hS''eq, hH_eq]
       -- Double polar and done!
       rw [doublePolarDual_self]
