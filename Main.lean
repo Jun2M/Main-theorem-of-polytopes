@@ -363,17 +363,13 @@ lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
 lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) 
   (hS0 : 0 ∈ interior (Vpolytope hS))
   : ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), 
-  Hpolytope hH_ = polarDual (Vpolytope hS) ∧ 0 ∈ Hpolytope hH_ ∧ IsCompact (Hpolytope hH_):= by
+  Hpolytope hH_ = polarDual (Vpolytope hS) ∧ IsCompact (Hpolytope hH_):= by
   -- Last statment follows from polarDual_origin
   suffices hHeqVdual : ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), 
     Hpolytope hH_ = polarDual (Vpolytope hS) from by
     rcases hHeqVdual with ⟨H_, hH_, hHeqVdual⟩
-    have hHcpt : IsCompact (Hpolytope hH_) := sorry
-    use H_, hH_, hHeqVdual
-    refine ⟨ ?_, hHcpt ⟩
-    rw [hHeqVdual]
-    exact polarDual_origin (Vpolytope hS)
-    done
+    refine ⟨ H_, hH_, hHeqVdual, ?_ ⟩
+    exact hHeqVdual ▸ (polarDual_compact_if (Closed_Vpolytope hS) (Convex_Vpolytope hS) hS0) 
   
   -- main proof
   use pointDual '' (Subtype.val ⁻¹' (S \ {0}))
@@ -440,9 +436,4 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     rw [Set.mem_diff, Set.mem_singleton_iff] at hx
     rw [Set.mem_setOf]
     exact hx.2
-    done
   done
-
--- dual is inner
--- inner riesz inner repre riesz 
--- double dual theorem
