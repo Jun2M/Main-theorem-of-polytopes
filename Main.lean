@@ -168,6 +168,12 @@ lemma Hpolytope.I_mem {H_ : Set (Halfspace d)} (x : EuclideanSpace ℝ (Fin d)) 
   rw [Set.mem_setOf]
   done
 
+lemma Hpolytope.I_sub {H_ : Set (Halfspace d)} (x : EuclideanSpace ℝ (Fin d)) : 
+  Hpolytope.I H_ x ⊆ H_ := by
+  unfold Hpolytope.I
+  simp only [Set.sep_subset]
+  done
+
 lemma ExtremePointsofHpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) :
   ∀ x ∈ Hpolytope hH_, x ∈ Set.extremePoints ℝ (Hpolytope hH_) ↔ 
   ⋂₀ ((frontier <| SetLike.coe ·) '' Hpolytope.I H_ x) = {x} := by
@@ -435,4 +441,74 @@ lemma DualOfVpolytope_compactHpolytope {S : Set (EuclideanSpace ℝ (Fin d))} (h
     rw [Set.mem_diff, Set.mem_singleton_iff] at hx
     rw [Set.mem_setOf]
     exact hx.2
+  done
+
+lemma Vpolytope_of_Hpolytope : ∀ {H_ : Set (Halfspace d)} (hH_ : H_.Finite), IsCompact (Hpolytope hH_) → 
+  ∃ (S : Set (EuclideanSpace ℝ (Fin d))) (hS : S.Finite), Hpolytope hH_ = Vpolytope hS := by
+  intro H_ hH_ hHcpt
+  
+  have hExHFinite: Set.Finite <| Set.extremePoints ℝ (Hpolytope hH_) := by
+    have := ExtremePointsofHpolytope hH_ 
+
+    let f := fun T : Set (Halfspace d) => ⋂₀ ((frontier <| SetLike.coe · ) '' T)
+    let g : EuclideanSpace ℝ (Fin ↑d) ↪ Set (EuclideanSpace ℝ (Fin ↑d)) :=
+      ⟨ fun x : EuclideanSpace ℝ (Fin ↑d) => Set.singleton x, Set.singleton_injective ⟩     
+
+    -- power set of H_ is finite
+    rcases Set.Finite.exists_finset_coe hH_ with ⟨ Hfin, hHfin ⟩
+    let PHfin := Hfin.powerset
+    let PH := Finset.toSet '' PHfin.toSet
+    have hPH : PH.Finite := Set.Finite.image _ <| Finset.finite_toSet PHfin
+
+    -- f '' (power set of H_) is finite
+    have hfPH : Set.Finite <| f '' PH := Set.Finite.image f hPH
+
+    -- g '' (Set.extremePoints ℝ (Hpolytope hH_)) ⊆ f '' (power set of H_) hence finite
+    have hgfPH : g '' (Set.extremePoints ℝ (Hpolytope hH_)) ⊆ f '' PH := by
+      intro Sx hSx
+      rcases hSx with ⟨ x, hx, rfl ⟩
+      change {x} ∈ f '' PH
+      rw [Set.mem_image]
+      refine ⟨ Hpolytope.I H_ x, ?_, ?_ ⟩
+      · -- x ∈ Hpolytope hH_
+        rw [Set.mem_image]
+        rcases Set.Finite.exists_finset_coe (Set.Finite.subset hH_ (Hpolytope.I_sub x)) with ⟨ Ifin, hIfin ⟩
+        refine ⟨ Ifin, ?_, hIfin ⟩
+        rw [Finset.mem_coe, Finset.mem_powerset, ← Finset.coe_subset, hHfin, hIfin]
+        exact Hpolytope.I_sub x
+      · -- sInter of I H_ x is {x}
+        rw [← ExtremePointsofHpolytope hH_ x (extremePoints_subset hx)]
+        exact hx
+      done
+
+    have hgExFin : Set.Finite <| g '' (Set.extremePoints ℝ (Hpolytope hH_)) := Set.Finite.subset hfPH hgfPH
+
+    -- Since g is embedding, Set.extremePoints ℝ (Hpolytope hH_) is finite
+    have := Set.Finite.preimage_embedding g hgExFin
+    rw [Function.Injective.preimage_image] at this
+    exact this
+    exact g.2
+    done
+
+  have := closure_convexHull_extremePoints hHcpt (Convex_Hpolytope hH_)
+  have hVcl := Closed_Vpolytope hExHFinite
+  rw [IsClosed.closure_eq] at this
+  rw [← this]
+  use Set.extremePoints ℝ (Hpolytope hH_)
+  use hExHFinite
+  rfl
+  exact hVcl
+  done
+
+lemma Hpolytope_of_Vpolytope_0interior {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) 
+  (hV0 : 0 ∈ interior (Vpolytope hS)): 
+  ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), Hpolytope hH_ = Vpolytope hS := by
+  rcases DualOfVpolytope_compactHpolytope hS hV0 with ⟨ H_, hH_, hH_eq, hH_cpt ⟩
+  rcases Vpolytope_of_Hpolytope hH_ hH_cpt with ⟨ S', hS', hS'eq ⟩
+  have : 0 ∈ interior (Vpolytope hS') := by
+    rw [←hS'eq, hH_eq, compact_polarDual_iff (Closed_Vpolytope hS)]
+    exact Compact_Vpolytope hS
+  rcases DualOfVpolytope_compactHpolytope hS' this with ⟨ H_', hH_', hH_'eq, _ ⟩
+  refine ⟨ H_', hH_', ?_ ⟩
+  rw [hH_'eq, ←hS'eq, hH_eq, doublePolarDual_self (Closed_Vpolytope hS) (Convex_Vpolytope hS) (interior_subset hV0)]
   done
