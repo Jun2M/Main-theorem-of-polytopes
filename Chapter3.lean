@@ -1,5 +1,4 @@
 import «Chapter2»
-import Mathlib.LinearAlgebra.StdBasis
 
 
 variable {d : ℕ+}

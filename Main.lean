@@ -3,6 +3,7 @@ import «Chapter3»
 
 
 variable {d : ℕ+}
+open Pointwise
 
 /-
 Let 𝑋 be a closed convex subset of ℝ^𝑑. Then:
@@ -61,6 +62,43 @@ lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpa
     exact h
     done
    
+lemma Vpolytope_translation {d : ℕ+} {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) 
+  (x : EuclideanSpace ℝ (Fin d)) : 
+  Vpolytope (Set.translation.Finite hS x) = (Vpolytope hS) + {x}:= by
+  rw [Vpolytope, convexHull_add, convexHull_singleton]
+  rfl
+  done
+
+lemma Hpolytope_translation {d : ℕ+} {H_ : Set (Halfspace d)} (hH_ : H_.Finite) 
+  (x : EuclideanSpace ℝ (Fin d)) : 
+  Hpolytope (Set.Finite.image (Halfspace_translation x) hH_) = (@Hpolytope d H_ hH_) + {x}:= by
+  rw [Hpolytope, Hpolytope, Set.sInter_image, Set.sInter_image]
+  ext y
+  rw [Set.mem_iInter, Set.add_singleton]
+  simp only [Set.mem_iInter, SetLike.mem_coe, Set.image_add_right, Set.mem_preimage]
+  constructor
+  · -- 1.
+    intro h Hi_ hHi_
+    specialize h (Halfspace_translation x Hi_) (Set.mem_image_of_mem _ hHi_)
+    rw [← SetLike.mem_coe, mem_Halfspace_translation] at h
+    exact h
+  · -- 2.
+    intro h Hi_ hHi_
+    specialize h (Halfspace_translation (-x) Hi_) (?_)
+    rw [Set.mem_image] at hHi_
+    rcases hHi_ with ⟨ Hi_', hHi_', rfl ⟩
+    have : Halfspace_translation (-x) (Halfspace_translation x Hi_') = Hi_':= by
+      rw [SetLike.ext_iff]
+      intro z
+      rw [← SetLike.mem_coe, ← SetLike.mem_coe, mem_Halfspace_translation, mem_Halfspace_translation, 
+        sub_neg_eq_add, add_sub_cancel]
+      done
+    rw [this]
+    assumption
+    rw [← SetLike.mem_coe, mem_Halfspace_translation, add_sub_cancel, SetLike.mem_coe] at h
+    exact h
+  done
+
 
 -- As a ball around x is convex, it must contain a segment with x in its interior
 lemma hxSegBallInterSeg : ∀ (x1 x2 : EuclideanSpace ℝ (Fin d)) (ε : ℝ), x ∈ openSegment ℝ x1 x2 ∧ ¬ (x1 = x ∧ x2 = x) → 
@@ -511,4 +549,43 @@ lemma Hpolytope_of_Vpolytope_0interior {S : Set (EuclideanSpace ℝ (Fin d))} (h
   rcases DualOfVpolytope_compactHpolytope hS' this with ⟨ H_', hH_', hH_'eq, _ ⟩
   refine ⟨ H_', hH_', ?_ ⟩
   rw [hH_'eq, ←hS'eq, hH_eq, doublePolarDual_self (Closed_Vpolytope hS) (Convex_Vpolytope hS) (interior_subset hV0)]
+  done
+
+lemma translationHomeo (x : EuclideanSpace ℝ (Fin d)) : EuclideanSpace ℝ (Fin d) ≃ₜ EuclideanSpace ℝ (Fin d) where
+  toFun := (· + x)
+  invFun := (· + -x)
+  left_inv := fun y => by simp
+  right_inv := fun y => by simp
+  continuous_toFun := by continuity
+  continuous_invFun := by continuity
+  
+lemma translationHomeo.toFun.def (x : EuclideanSpace ℝ (Fin d)) : 
+  ↑(translationHomeo x) = (· + x) := by
+  unfold translationHomeo
+  simp
+  done
+
+lemma Hpolytope_of_Vpolytope_interior {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) 
+  (hVinterior : Set.Nonempty <| interior (Vpolytope hS)):
+  ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), Hpolytope hH_ = Vpolytope hS := by
+  let S' := S + {-hVinterior.some}
+  have hS' : S'.Finite := by exact (Set.translation.Finite hS (-hVinterior.some))
+
+  have : 0 ∈ interior (Vpolytope hS') := by
+    rw [Vpolytope_translation hS, Set.add_singleton, ]
+    have := @Homeomorph.image_interior _ _ _ _ (translationHomeo (-hVinterior.some)) (Vpolytope hS)
+    rw [translationHomeo.toFun.def] at this
+    rw [← this]; clear this
+    rw [← Set.add_singleton, Set.mem_translation, neg_neg, zero_add]
+    exact hVinterior.some_mem
+    done
+
+  rcases Hpolytope_of_Vpolytope_0interior hS' this with ⟨ H_', hH_', hH_'eq ⟩
+  let H_ := (Halfspace_translation hVinterior.some) '' H_'
+  have hH_ : H_.Finite := Set.Finite.image _ hH_'
+  
+  use H_
+  use hH_
+  ext x
+  rw [Hpolytope_translation, hH_'eq, Vpolytope_translation, Set.neg_add_cancel_right']
   done

@@ -4,8 +4,9 @@ import «Main»
 
 
 variable {d : ℕ+}
+open Pointwise
 
-  
+
 theorem MainTheoremOfPolytopes : 
   (∀ (S : Set (EuclideanSpace ℝ (Fin d))) (hS : S.Finite), ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), 
     Hpolytope hH_ = Vpolytope hS) ∧ 
@@ -14,28 +15,17 @@ theorem MainTheoremOfPolytopes :
   constructor
   · -- 1.
     intro S hS
-    cases' (em (interior (Vpolytope hS)).Nonempty) with hVpolytopeIntEmpty hVpolytopeIntNonempty
+    cases' (em (interior (Vpolytope hS)).Nonempty) with hVpolytopeIntNonempty hVpolytopeIntEmpty
     · -- Interior is nonempty 
-      let S' := (fun x => x - hVpolytopeIntEmpty.some) '' S
-      have hS' : S'.Finite := by exact Set.Finite.image (fun x => x - Set.Nonempty.some hVpolytopeIntEmpty) hS
-
-      have : 0 ∈ interior (Vpolytope hS') := by
-        sorry
-        done
-
-      rcases Hpolytope_of_Vpolytope_0interior hS' this with ⟨ H_', hH_', hH_'eq ⟩
-      let H_ := (Halfspace_translation hVpolytopeIntEmpty.some) '' H_'
-      have hH_ : H_.Finite := Set.Finite.image _ hH_'
-      
-      use H_
-      use hH_
-      
-      rw [hH_'eq, ←hS''eq, hH_eq]
-      -- Double polar and done!
-      rw [doublePolarDual_self]
-      
-      done
+      exact Hpolytope_of_Vpolytope_interior _ hVpolytopeIntNonempty
     · -- Interior is empty
+      /-
+      1. ConvexHull always have an intrinsic interior
+      2. Any AffineSubspaces are intersections of hyperplanes
+      3. Any hyperplane is an intersection of two Halfspaces
+      4. Take union of the set of Halfspaces for Hpolytope in the affineSpan and for the affineSpan, Done
+      -/
+      
       sorry
       done
   · -- 2.

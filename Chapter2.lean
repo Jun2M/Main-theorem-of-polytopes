@@ -7,6 +7,24 @@ import Mathlib.Analysis.Convex.KreinMilman
 
 
 variable {d : ℕ+}
+open Pointwise
+
+
+lemma Set.translation.Finite {α : Type} [Add α] {S : Set α} (hS : S.Finite) (x : α) : 
+  (S + ({x} : Set α)).Finite := by 
+  rw [Set.add_singleton]
+  exact Set.Finite.image _ hS
+
+lemma Set.mem_translation {α : Type} [AddGroup α] (S : Set α) (s : α) (x : α) : 
+  s ∈ S + {x} ↔ s + -x ∈ S := by
+  rw [Set.add_singleton, Set.image_add_right, Set.mem_preimage]
+  done
+
+lemma Set.neg_add_cancel_right' {α : Type} [AddGroup α] (S : Set α) (x : α) : 
+  S + {-x} + {x} = S := by
+  ext y
+  simp only [add_singleton, image_add_right, neg_neg, mem_preimage, neg_add_cancel_right]
+  done
 
 
 theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [TopologicalSpace α] :
@@ -180,33 +198,28 @@ lemma Halfspace_span (H_ : Halfspace d) : affineSpan ℝ (SetLike.coe H_) = ⊤ 
 noncomputable def Halfspace_translation (x : EuclideanSpace ℝ (Fin d)) (H_ : Halfspace d) : Halfspace d := 
   Halfspace.mk H_.f (H_.α + (H_.f.1 x))
 
-lemma Halfspace_translation.h (H_ : Halfspace d) (x : EuclideanSpace ℝ (Fin d)) : 
-  (Halfspace_translation x H_) = (fun v => v + x) '' H_ := by
-  unfold Halfspace_translation
-  rw [Halfspace.h, Halfspace.h]
-  simp only [Set.preimage_setOf_eq, Set.image_add_right, map_add, map_neg, add_neg_le_iff_le_add]
-  done  
+lemma Halfspace_translation.S (x : EuclideanSpace ℝ (Fin d)) (H_ : Halfspace d) : 
+  ↑(Halfspace_translation x H_) = (· + x) '' ↑H_ := by
+  ext y
+  rw [Halfspace_translation, Halfspace_mem, Set.image_add_right, Set.mem_preimage, ← sub_eq_add_neg, 
+    Halfspace_mem, ContinuousLinearMap.map_sub, sub_le_iff_le_add]
+  done
+
+lemma mem_Halfspace_translation (x : EuclideanSpace ℝ (Fin d)) (H_ : Halfspace d) : 
+  ∀ y, y ∈ (SetLike.coe <| Halfspace_translation x H_) ↔ y - x ∈ SetLike.coe H_ := by
+  intro y
+  rw [Halfspace_translation.S, Set.image_add_right, Set.mem_preimage, sub_eq_add_neg]
+  done 
 
 lemma Halfspace_translation.injective (x : EuclideanSpace ℝ (Fin d)) : 
-  Function.Injective (Halfspace_translation x) := by
+  Function.Injective (Halfspace_translation x · : Halfspace d → Halfspace d ) := by
   intro H1 H2 h
   rw [SetLike.ext_iff]
   intro y
   rw [SetLike.ext_iff] at h
   specialize h (y + x)
-  
-  rw [← SetLike.mem_coe, ← SetLike.mem_coe] at h
-  rw [Halfspace_translation.h, Halfspace_translation.h, Set.mem_image, Set.mem_image] at h
-  constructor <;> intro H
-  · -- 1.
-    rcases (h.mp (by exact ⟨ y, H, rfl ⟩ : ∃ x_1, x_1 ∈ H1 ∧ x_1 + x = y + x)) with ⟨ x_1, hx_1, hx_1x ⟩
-    simp at hx_1x
-    exact hx_1x ▸ hx_1
-  · -- 2.
-    rcases (h.mpr (by exact ⟨ y, H, rfl ⟩ : ∃ x_1, x_1 ∈ H2 ∧ x_1 + x = y + x)) with ⟨ x_1, hx_1, hx_1x ⟩
-    simp at hx_1x
-    exact hx_1x ▸ hx_1
-  done
+  rw [← SetLike.mem_coe, ← SetLike.mem_coe, mem_Halfspace_translation, mem_Halfspace_translation, add_sub_cancel] at h
+  exact h
 
 lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace d} : 
   frontier Hi_ = {x : EuclideanSpace ℝ (Fin d) | Hi_.f.1 x = Hi_.α } := by

@@ -3,11 +3,53 @@ import «Chapter3»
 import «Main»
 
 
-variable {d : ℕ+}
+-- variable {d : ℕ+}
+open Pointwise
 
 
 
+lemma translationHomeo (x : EuclideanSpace ℝ (Fin d)) : EuclideanSpace ℝ (Fin d) ≃ₜ EuclideanSpace ℝ (Fin d) where
+  toFun := (· + x)
+  invFun := (· + -x)
+  left_inv := fun y => by simp
+  right_inv := fun y => by simp
+  continuous_toFun := by continuity
+  continuous_invFun := by continuity
+  -- s ∈ S + {x} ↔ s + -x ∈ S := by
+  -- rw [Set.add_singleton, Set.image_add_right, Set.mem_preimage]
 
+-- instance HAdd.SetPoint {α : Type} [Add α] : HAdd (Set α) α (Set α) where
+--   hAdd := fun (S : Set α) (x : α) => S + (Set.singleton x)
+
+-- instance HAdd.SetPoint' {α β : Type} [HAdd α β α] : HAdd (Set α) β (Set α) where
+--   hAdd := fun (S : Set α) (x : β) => (· + x) '' S
+
+-- lemma Set.translation_def {α : Type} [Add α] (S : Set α) (x : α) : 
+--   S + x = (· + x) '' S := by rfl
+
+-- lemma Set.translation_def' {α β : Type} [HAdd α β α] (S : Set α) (x : β) : 
+--   S + x = (· + x) '' S := by rfl
+
+-- lemma Set.translation.Finite {α β : Type} [HAdd α β α] {S : Set α} (hS : S.Finite) (x : β) : 
+--   (S + x).Finite := Set.Finite.image _ hS
+
+-- lemma Set.mem_translation {α : Type} [AddGroup α] (S : Set α) (s : α) (x : α) : 
+--   s ∈ S + x ↔ s + -x ∈ S := by
+--   rw [Set.translation_def, Set.image_add_right, Set.mem_preimage]
+--   done
+
+-- noncomputable instance HAdd.HalfspacePoint {d : ℕ+} : 
+--   HAdd (Halfspace d) (EuclideanSpace ℝ (Fin d)) (Halfspace d) where
+--   hAdd := fun (H_ : Halfspace d) (x : EuclideanSpace ℝ (Fin d)) => Halfspace_translation x H_
+
+-- lemma Halfspace.add_def {d : ℕ+} (H_ : Halfspace d) (x : EuclideanSpace ℝ (Fin d)) : 
+--   H_ + x = Halfspace_translation x H_ := by rfl
+
+-- lemma coe_Halfspace_translation (x : EuclideanSpace ℝ (Fin d)) (H_ : Halfspace d) : 
+--   ↑(H_ + x) = (· + x) '' H_ := by
+--   rw [Halfspace.add_def, Halfspace_translation, Halfspace.h, Halfspace.h]
+--   simp only [Set.preimage_setOf_eq, Set.image_add_right, map_add, map_neg, add_neg_le_iff_le_add]
+--   done
 
 -- Extreme points of H polytope is finite
 
