@@ -8,13 +8,7 @@ open Pointwise
 
 
 
-lemma translationHomeo (x : EuclideanSpace ℝ (Fin d)) : EuclideanSpace ℝ (Fin d) ≃ₜ EuclideanSpace ℝ (Fin d) where
-  toFun := (· + x)
-  invFun := (· + -x)
-  left_inv := fun y => by simp
-  right_inv := fun y => by simp
-  continuous_toFun := by continuity
-  continuous_invFun := by continuity
+
   -- s ∈ S + {x} ↔ s + -x ∈ S := by
   -- rw [Set.add_singleton, Set.image_add_right, Set.mem_preimage]
 

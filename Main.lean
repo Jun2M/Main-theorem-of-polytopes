@@ -61,7 +61,74 @@ lemma mem_Hpolytope {H_ : Set (Halfspace d)} (hH_ : H_.Finite) (x : EuclideanSpa
     rw [Halfspace_mem]
     exact h
     done
-   
+    
+lemma empty_Hpolytope : ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), Hpolytope hH_ = ∅ := by
+  let ihat : EuclideanSpace ℝ (Fin d) := EuclideanSpace.single 0 1
+  let fval := InnerProductSpace.toDualMap ℝ _ ihat
+  let f : unitSphereDual d := ⟨ fval , (by
+    change norm (innerSL ℝ ihat) = 1
+    rw [innerSL_apply_norm, EuclideanSpace.norm_single, norm_one]
+    done
+  ) ⟩
+  refine ⟨ {Halfspace.mk f (-1), Halfspace.mk (-f) (-1)} , 
+    (by simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, Set.finite_singleton, Set.Finite.insert]) , ?_ ⟩
+  
+  ext x
+  rw [Set.mem_empty_iff_false, iff_false, mem_Hpolytope]
+  intro h
+  have h1 := h (Halfspace.mk f (-1)) (by simp)
+  have h2 := h (Halfspace.mk (-f) (-1)) (by simp)
+  rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
+  change f.1 x ≤ -1 at h1
+  linarith
+  done
+
+lemma hyperplane_Hpolytope : ∀ (f : unitSphereDual d) (c : ℝ), 
+  ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), Hpolytope hH_ = {x | f.1 x = c} := by
+  intro f c
+  refine ⟨ {Halfspace.mk f c, Halfspace.mk (-f) (-c)}, 
+    (by simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, Set.finite_singleton, Set.Finite.insert]) , ?_ ⟩
+
+  ext x
+  rw [mem_Hpolytope, Set.mem_setOf]
+  constructor
+  · -- 1.
+    intro h
+    have h1 := h (Halfspace.mk f c) (by simp)
+    have h2 := h (Halfspace.mk (-f) (-c)) (by simp)
+    rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
+    change f.1 x ≤ c at h1
+    exact le_antisymm h1 h2
+  · -- 2.
+    intro h Hi hHi
+    simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, Set.mem_insert_iff] at hHi 
+    rcases hHi with rfl | rfl
+    · 
+      exact le_of_eq h
+    · 
+      rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg]
+      exact le_of_eq h.symm
+  done
+
+lemma inter_Hpolytope (H_1 H_2 : Set (Halfspace d)) (hH_1 : H_1.Finite) (hH_2 : H_2.Finite) : 
+  ∃ (H_ : Set (Halfspace d)) (hH_ : H_.Finite), Hpolytope hH_ = Hpolytope hH_1 ∩ Hpolytope hH_2 := by
+  refine ⟨ H_1 ∪ H_2 , Set.Finite.union hH_1 hH_2, ?_ ⟩
+  ext x
+  rw [mem_Hpolytope, Set.mem_inter_iff, mem_Hpolytope, mem_Hpolytope]
+  constructor
+  · -- 1
+    intro h
+    constructor <;> intro Hi_ hH_ <;> exact h Hi_ (by simp only [Set.mem_union, hH_, true_or, or_true])
+  · -- 2
+    intro h Hi hHi
+    rw [Set.mem_union] at hHi 
+    rcases hHi with hHi | hHi
+    · -- 2.1
+      exact h.1 Hi hHi
+    · -- 2.2
+      exact h.2 Hi hHi 
+  done
+
 lemma Vpolytope_translation {d : ℕ+} {S : Set (EuclideanSpace ℝ (Fin d))} (hS : S.Finite) 
   (x : EuclideanSpace ℝ (Fin d)) : 
   Vpolytope (Set.translation.Finite hS x) = (Vpolytope hS) + {x}:= by

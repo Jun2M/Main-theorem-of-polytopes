@@ -60,6 +60,13 @@ lemma unitSphereDual_surj : ∀ f : {f : (NormedSpace.Dual ℝ (EuclideanSpace �
   
 lemma unitSphereDual_cont : ∀ f : unitSphereDual d, Continuous f.val := fun f => f.1.cont
 
+noncomputable instance NegUnitSphereDual : Neg (unitSphereDual d) := ⟨λ f => ⟨-f.1, by simp [f.2]⟩⟩
+
+lemma unitSphereDual_neg : ∀ f : unitSphereDual d, (-f).1 = -f.1 := fun f => by 
+  change (⟨-f.1, _ ⟩: unitSphereDual d).1 = -f.1
+  simp
+  done
+
 -- Type for halfspaces of EuclideanSpace ℝ (Fin d)
 -- For completeness, it is define with a linear map with norm 1 and a real number bound
 structure Halfspace (d : ℕ+) where
