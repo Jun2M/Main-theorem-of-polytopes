@@ -1,28 +1,26 @@
 import «Chapter2»
 
 
-variable {d : ℕ+}
+variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] 
 
--- noncomputable def stdbasisℝd : Basis (Fin d) ℝ (EuclideanSpace ℝ (Fin d)) :=
---   Pi.basisFun ℝ (Fin d)
 
 -- Given non-zero vector p, define the halfspace of vectors x such that inner p x ≤ 1
-noncomputable def pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : Halfspace d :=
+noncomputable def pointDual (p : {p : E // p ≠ 0}) : Halfspace E :=
   Halfspace.mk ⟨ (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)), (by
   simp only [ne_eq, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real]
-  have : norm ((InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin ↑d))) ↑p) = norm p.1 := by simp
+  have : norm ((InnerProductSpace.toDual ℝ E) ↑p) = norm p.1 := by simp
   rw [← this]
   apply norm_smul_inv_norm
   rw [ne_eq, AddEquivClass.map_eq_zero_iff]
   exact p.2) ⟩ (norm p.1)⁻¹
 
-lemma pointDual.α (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : (pointDual p).α = (norm p.1)⁻¹ := by rfl
+lemma pointDual.α (p : {p : E // p ≠ 0}) : (pointDual p).α = (norm p.1)⁻¹ := by rfl
 
-lemma pointDual.h (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
+lemma pointDual.h (p : {p : E // p ≠ 0}) : 
   (pointDual p) = (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)) ⁻¹' {x | x ≤ (norm p.1)⁻¹} := by rfl
 
-lemma pointDual_origin (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
-  (0 : EuclideanSpace ℝ (Fin d)) ∈ (SetLike.coe <| pointDual p) := by
+lemma pointDual_origin (p : {p : E // p ≠ 0}) : 
+  (0 : E) ∈ (SetLike.coe <| pointDual p) := by
   rw [pointDual.h, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real, Set.preimage_setOf_eq, 
     Set.mem_setOf_eq, map_zero, ← one_div]
   apply le_of_lt
@@ -31,7 +29,7 @@ lemma pointDual_origin (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) :
   exact ⟨ zero_lt_one, by rw [norm_pos_iff]; exact p.2 ⟩
   done
 
-lemma mem_pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
+lemma mem_pointDual (p : {p : E // p ≠ 0}) : 
   ∀ x, x ∈ (SetLike.coe <| pointDual p) ↔ inner p.1 x ≤ (1:ℝ) := by
   intro x
   rw [pointDual.h, Set.mem_preimage, InnerProductSpace.toDual_apply, Set.mem_setOf, 
@@ -39,31 +37,31 @@ lemma mem_pointDual (p : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) :
     ← mul_assoc, mul_inv_cancel (norm_ne_zero_iff.mpr p.2), one_mul]
   done
 
-lemma pointDual_comm (p q : {p : EuclideanSpace ℝ (Fin d) // p ≠ 0}) : 
+lemma pointDual_comm (p q : {p : E // p ≠ 0}) : 
   p.1 ∈ (SetLike.coe <| pointDual q) ↔ q.1 ∈ (SetLike.coe <| pointDual p) := by
   rw [mem_pointDual, mem_pointDual, real_inner_comm]
   done
 
 
-noncomputable def polarDual (X : Set (EuclideanSpace ℝ (Fin d))) : Set (EuclideanSpace ℝ (Fin d)) := 
+noncomputable def polarDual (X : Set (E)) : Set (E) := 
   ⋂₀ (SetLike.coe '' (pointDual '' (Subtype.val ⁻¹' X)))
 
-lemma polarDual_closed (X : Set (EuclideanSpace ℝ (Fin d))) : IsClosed (polarDual X) := by
+lemma polarDual_closed (X : Set (E)) : IsClosed (polarDual X) := by
   apply isClosed_sInter
   intro Hi_s h
   rw [Set.mem_image] at h
   rcases h with ⟨ Hi_, _, rfl ⟩
   exact Halfspace_closed _
 
-lemma polarDual_convex (X : Set (EuclideanSpace ℝ (Fin d))) : Convex ℝ (polarDual X) := by
+lemma polarDual_convex (X : Set (E)) : Convex ℝ (polarDual X) := by
   apply convex_sInter
   intro Hi_s h
   rw [Set.mem_image] at h
   rcases h with ⟨ Hi_, _, rfl ⟩
   exact Halfspace_convex _
 
-lemma polarDual_origin (X : Set (EuclideanSpace ℝ (Fin d))) : 
-  (0 : EuclideanSpace ℝ (Fin d)) ∈ polarDual X := by
+lemma polarDual_origin (X : Set (E)) : 
+  (0 : E) ∈ polarDual X := by
   intro Hi_s h
   rw [Set.mem_image] at h
   rcases h with ⟨ Hi_, h, rfl ⟩
@@ -71,7 +69,7 @@ lemma polarDual_origin (X : Set (EuclideanSpace ℝ (Fin d))) :
   rcases h with ⟨ p, _, rfl ⟩
   exact pointDual_origin p
 
-lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace ℝ (Fin d)}:
+lemma mem_polarDual {X : Set (E)} {v : E}:
   v ∈ polarDual X ↔ ∀ x ∈ X, inner x v ≤ (1:ℝ) := by
   unfold polarDual
   rw [Set.mem_sInter]
@@ -106,7 +104,7 @@ lemma mem_polarDual {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace �
     done
   done
 
-lemma mem_polarDual' {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace ℝ (Fin d)}:
+lemma mem_polarDual' {X : Set (E)} {v : E}:
   v ∈ polarDual X ↔ ∀ x ∈ X, inner v x ≤ (1:ℝ) := by
   rw [mem_polarDual]
   constructor <;>
@@ -116,7 +114,7 @@ lemma mem_polarDual' {X : Set (EuclideanSpace ℝ (Fin d))} {v : EuclideanSpace 
     exact h x hx
   done
 
-lemma polarDual_comm_half (X Y : Set (EuclideanSpace ℝ (Fin d))) : 
+lemma polarDual_comm_half (X Y : Set (E)) : 
   X ⊆ polarDual Y → Y ⊆ polarDual X := by
   rw [Set.subset_def, Set.subset_def]
   intro h y hy
@@ -129,13 +127,13 @@ lemma polarDual_comm_half (X Y : Set (EuclideanSpace ℝ (Fin d))) :
   exact h
   done
 
-lemma polarDual_comm (X Y : Set (EuclideanSpace ℝ (Fin d))) :
+lemma polarDual_comm (X Y : Set (E)) :
   X ⊆ polarDual Y ↔ Y ⊆ polarDual X := by
   constructor <;> exact fun h => polarDual_comm_half _ _ h
   done
 
 -- Compact condition not needed?
-lemma doublePolarDual_self {X : Set (EuclideanSpace ℝ (Fin d))} 
+lemma doublePolarDual_self {X : Set (E)} 
   (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) : polarDual (polarDual X) = X := by
   apply subset_antisymm
   · -- 1.
@@ -146,7 +144,7 @@ lemma doublePolarDual_self {X : Set (EuclideanSpace ℝ (Fin d))}
     rcases geometric_hahn_banach_point_closed hXcv hXcl hx with ⟨ f, α, h, hX ⟩
 
     have hαneg := (neg_pos.mpr ((ContinuousLinearMap.map_zero f) ▸ (hX 0 hX0)))
-    use (α⁻¹) • (InnerProductSpace.toDual ℝ (EuclideanSpace ℝ (Fin ↑d))).symm f
+    use (α⁻¹) • (InnerProductSpace.toDual ℝ E).symm f
     rw [mem_polarDual']
     constructor <;> intros <;> (try apply le_of_lt) <;> rw [real_inner_smul_left, 
       InnerProductSpace.toDual_symm_apply, ←neg_lt_neg_iff, ←neg_mul, mul_comm, neg_inv, ← division_def]
@@ -162,20 +160,20 @@ lemma doublePolarDual_self {X : Set (EuclideanSpace ℝ (Fin d))}
   done
 
 
-lemma polarDual_empty : polarDual (∅ : Set (EuclideanSpace ℝ (Fin d))) = Set.univ := by
+lemma polarDual_empty : polarDual (∅ : Set (E)) = Set.univ := by
   rw [polarDual, Set.preimage_empty, Set.image_empty, Set.image_empty, Set.sInter_empty]
   done
 
-lemma polarDual_zero : polarDual ({0} : Set (EuclideanSpace ℝ (Fin d))) = Set.univ := by
+lemma polarDual_zero : polarDual ({0} : Set (E)) = Set.univ := by
   rw [polarDual]
-  have : (@Subtype.val (EuclideanSpace ℝ (Fin ↑d)) fun p => p ≠ 0) ⁻¹' {0} = ∅ := by
+  have : (@Subtype.val E fun p => p ≠ 0) ⁻¹' {0} = ∅ := by
     rw [Set.preimage_singleton_eq_empty]
     simp only [ne_eq, Subtype.range_coe_subtype, Set.mem_setOf_eq, not_true, not_false_eq_true]
     done
   rw [this, Set.image_empty, Set.image_empty, Set.sInter_empty]
   done
 
-lemma compact_polarDual_iff {X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) :
+lemma compact_polarDual_iff [FiniteDimensional ℝ E] {X : Set (E)} (hXcl : IsClosed X) :
   0 ∈ interior (polarDual X) ↔ IsCompact X := by
   cases' (em (X \ {0}).Nonempty) with hXnonempty hXempty
   · 
@@ -192,12 +190,12 @@ lemma compact_polarDual_iff {X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClo
         rw [hx0, norm_zero]
         exact div_nonneg zero_le_two (le_of_lt hε)
         done
-      let u : EuclideanSpace ℝ (Fin d) := (ε/2/(norm x)) • x
+      let u : E := (ε/2/(norm x)) • x
       have hnormu : ‖u‖ = ε/2 := by
         rw [norm_smul, Real.norm_eq_abs, abs_of_pos (div_pos (half_pos hε) (norm_pos_iff.mpr hx0)), 
         div_mul_cancel _ (norm_ne_zero_iff.mpr hx0)]
         done
-      have hu : u ∈ Metric.ball (0:EuclideanSpace ℝ (Fin d)) ε := by
+      have hu : u ∈ Metric.ball (0:E) ε := by
         rw [Metric.mem_ball, dist_zero_right, hnormu]
         exact half_lt_self hε
 
@@ -250,14 +248,10 @@ lemma compact_polarDual_iff {X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClo
       exact ⟨ fun _ => isCompact_singleton, fun _ => trivial ⟩
     done
 
-lemma polarDual_compact_if {X : Set (EuclideanSpace ℝ (Fin d))} (hXcl : IsClosed X) (hXcv : Convex ℝ X) :
+lemma polarDual_compact_if [FiniteDimensional ℝ E] {X : Set (E)} (hXcl : IsClosed X) (hXcv : Convex ℝ X) :
   0 ∈ interior X → IsCompact (polarDual X) := by
   intro h
   rw [← doublePolarDual_self hXcl hXcv (interior_subset h), compact_polarDual_iff (polarDual_closed _)] at h
   exact h
   done
 
-
-
--- Equivalence of ℝ^d and its dual
--- InnerProductSpace.toDual
