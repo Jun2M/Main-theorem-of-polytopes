@@ -37,11 +37,11 @@ lemma interior_eq_compl_closure_compl [TopologicalSpace α] {s : Set α} : inter
 
 -- Type for halfspaces of E
 -- For completeness, it is define with a linear map with norm 1 and a real number bound
-structure Halfspace (E : Type) [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] where
+structure Halfspace (E : Type) [NormedAddCommGroup E] [InnerProductSpace ℝ E] where
   f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}
   α : ℝ
 
-variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] 
+variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] 
 
 noncomputable instance NegUnitSphereDual : Neg {f : (NormedSpace.Dual ℝ E) // norm f = 1} := 
   ⟨λ f => ⟨-f.1, by simp [f.2]⟩⟩
@@ -62,6 +62,8 @@ lemma unitSphereDual_surj : ∀ f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}
   done
 
 def Halfspace.S (H_ : Halfspace E) : Set E := H_.f.1 ⁻¹' {x | x ≤ H_.α}
+
+variable [CompleteSpace E]
 
 instance Halfspace.SetLike : SetLike (Halfspace E) E where
   coe := Halfspace.S

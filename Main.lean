@@ -113,8 +113,7 @@ lemma hyperplane_Hpolytope : ∀ (f : {f : (NormedSpace.Dual ℝ E) // norm f = 
   done
 
 lemma inter_Hpolytope (H_1 H_2 : Set (Halfspace E)) (hH_1 : H_1.Finite) (hH_2 : H_2.Finite) : 
-  ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = Hpolytope hH_1 ∩ Hpolytope hH_2 := by
-  refine ⟨ H_1 ∪ H_2 , Set.Finite.union hH_1 hH_2, ?_ ⟩
+  Hpolytope (Set.Finite.union hH_1 hH_2) = Hpolytope hH_1 ∩ Hpolytope hH_2 := by
   ext x
   rw [mem_Hpolytope, Set.mem_inter_iff, mem_Hpolytope, mem_Hpolytope]
   constructor
@@ -170,6 +169,7 @@ lemma Hpolytope_translation {H_ : Set (Halfspace E)} (hH_ : H_.Finite)
 
 
 -- As a ball around x is convex, it must contain a segment with x in its interior
+-- StrictConvexSpace
 lemma hxSegBallInterSeg : ∀ (x1 x2 : E) (ε : ℝ), x ∈ openSegment ℝ x1 x2 ∧ ¬ (x1 = x ∧ x2 = x) → 
   0 < ε → ∃ x1' x2', x ∈ openSegment ℝ x1' x2' ∧ segment ℝ x1' x2' ⊆ openSegment ℝ x1 x2 ∩ Metric.ball x ε ∧ 
     ¬ (x1' = x ∧ x2' = x) := by 
