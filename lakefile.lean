@@ -8,11 +8,15 @@ package «MasterDiss» {
 require mathlib from git
   "https://github.com/leanprover-community/mathlib4.git"
 
-lean_lib «chapter2» {
+lean_lib «hyperplane» {
   -- add any library configuration options here
 }
 
-lean_lib «chapter3» {
+lean_lib «Hpolytope» {
+  -- add any library configuration options here
+}
+
+lean_lib «polar» {
   -- add any library configuration options here
 }
 

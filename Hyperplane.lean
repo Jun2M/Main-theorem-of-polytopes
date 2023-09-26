@@ -1,39 +1,10 @@
-import Mathlib.Analysis.Convex.Intrinsic
-import Mathlib.Analysis.InnerProductSpace.EuclideanDist
 import Mathlib.Analysis.Convex.Independent
 import Mathlib.Analysis.InnerProductSpace.Dual
-import Mathlib.Analysis.Convex.KreinMilman
--- import Pre
+import Pre
 
 
 open Pointwise
 
-
-lemma Set.translation.Finite {α : Type} [Add α] {S : Set α} (hS : S.Finite) (x : α) : 
-  (S + ({x} : Set α)).Finite := by 
-  rw [Set.add_singleton]
-  exact Set.Finite.image _ hS
-
-lemma Set.mem_translation {α : Type} [AddGroup α] (S : Set α) (s : α) (x : α) : 
-  s ∈ S + {x} ↔ s + -x ∈ S := by
-  rw [Set.add_singleton, Set.image_add_right, Set.mem_preimage]
-  done
-
-lemma Set.neg_add_cancel_right' {α : Type} [AddGroup α] (S : Set α) (x : α) : 
-  S + {-x} + {x} = S := by
-  ext y
-  simp only [add_singleton, image_add_right, neg_neg, mem_preimage, neg_add_cancel_right]
-  done
-
-theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [TopologicalSpace α] :
-  (∀ t ∈ s, IsOpen t) → IsOpen (⋂₀ s) :=
-  Finite.induction_on hs (fun _ => by rw [sInter_empty]; exact isOpen_univ) fun _ _ ih h => by
-    simp only [sInter_insert, ball_insert_iff] at h ⊢
-    exact h.1.inter (ih h.2)
-
-lemma interior_eq_compl_closure_compl [TopologicalSpace α] {s : Set α} : interior s = (closure sᶜ)ᶜ := by
-  rw [← compl_compl s, compl_compl sᶜ, interior_compl]
-  done
 
 -- Type for halfspaces of E
 -- For completeness, it is define with a linear map with norm 1 and a real number bound
@@ -41,7 +12,7 @@ structure Halfspace (E : Type) [NormedAddCommGroup E] [InnerProductSpace ℝ E] 
   f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}
   α : ℝ
 
-variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] 
+variable {E P : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [AddTorsor E P]
 
 noncomputable instance NegUnitSphereDual : Neg {f : (NormedSpace.Dual ℝ E) // norm f = 1} := 
   ⟨λ f => ⟨-f.1, by simp [f.2]⟩⟩
@@ -250,114 +221,103 @@ lemma Hyperplane_affineClosed (Hi_ : Halfspace E) :
   rw [hg, ←Finset.sum_mul, ha, one_mul]
   done
 
--- theorem2_21 = geometric_hahn_banach_open_point?
 
-def IsFace (F X : Set E) : Prop := 
-  Convex ℝ F ∧ IsClosed F ∧ IsExtreme ℝ X F
+def cutSpace (H_ : Set (Halfspace E)) : Set E := ⋂₀ (SetLike.coe '' H_)
 
-def IsProperFace (F X : Set E) : Prop := 
-  F ≠ X ∧ F.Nonempty ∧ IsFace F X
+lemma Convex_cutSpace {H_ : Set (Halfspace E)} : Convex ℝ (cutSpace H_) := by
+  apply convex_sInter
+  rintro _ ⟨ Hi_, _, rfl ⟩
+  exact Halfspace_convex Hi_
 
-lemma lemma2_27 {F X : Set E} [FiniteDimensional ℝ E] (hXcl : IsClosed X) (hXCV : Convex ℝ X)
-  (hF : IsProperFace F X) : F ⊆ intrinsicFrontier ℝ X := by
-  rcases hF with ⟨hFX, hF0, hFCV, hFCl, hFs, hFEx⟩ ; clear hFCl hXCV hF0 hFCV
-  intro y hyF
-  have hyX : y ∈ X := Set.mem_of_subset_of_mem hFs hyF
-  have hFss := (ssubset_of_subset_of_ne hFs hFX) ; clear hFs hFX
-  rcases (Set.nonempty_diff.mpr (HasSSubset.SSubset.not_subset hFss)) with ⟨x, hxX, hxF⟩ ;clear hFss
+lemma Closed_cutSpace {H : Set (Halfspace E)} : @IsClosed E _ (cutSpace H_) := by
+  apply isClosed_sInter
+  rintro _ ⟨ Hi_, _, rfl ⟩
+  change IsClosed Hi_
+  rw [Hi_.h]
+  apply IsClosed.preimage (Hi_.f.1.cont)
+  exact isClosed_Iic
 
-  let y'n : ℕ → E := λ n => AffineMap.lineMap x y (1 + 1/(n+1):ℝ)
-  let Sn : ℕ → Set E := λ n => segment ℝ x (y'n n)
-  
-  have h1 : ∀ n, 0 < 1 / ((@Nat.cast ℝ _ n) + 1:ℝ) := 
-    fun n:ℕ => (div_pos zero_lt_one (Nat.cast_add_one_pos n))
-
-  have hxy : x ≠ y := λ h => hxF (h ▸ hyF)
-
-  have hySn : ∀ n, y ∈ Sn n := by
-    intro n
-    change y ∈ segment ℝ x (AffineMap.lineMap x y (1 + 1/(n+1):ℝ))
-    rw [segment_eq_image_lineMap]
-    use 1/(1 + 1/(n+1):ℝ)
-    rw [Set.mem_Icc]
-    constructor
-    · -- 1. tedious inequalities
-      suffices h2 : 0 < 1 / (1 + 1 / (↑n + 1:ℝ)) ∧ 1 / (1 + 1 / (↑n + 1:ℝ)) ≤ 1 from ⟨ le_of_lt h2.1, h2.2 ⟩
-      rw [← one_le_inv_iff, one_div, inv_inv, le_add_iff_nonneg_right, one_div, inv_nonneg]
-      exact le_of_lt (Nat.cast_add_one_pos n)
-    · -- 2.
-      rw [AffineMap.coe_lineMap, AffineMap.coe_lineMap]
-      simp only [vsub_eq_sub, vadd_eq_add, add_sub_cancel, ne_eq]
-      rw [one_div, smul_smul, inv_mul_cancel, one_smul, sub_add_cancel]
-      exact (ne_of_lt (add_pos_of_nonneg_of_pos (by linarith) (h1 n))).symm
-
-  have hy'naff : ∀ n, y'n n ∈ affineSpan ℝ X := by
-    intro n
-    apply AffineMap.lineMap_mem <;> apply subset_affineSpan <;> assumption
-
-  let y''n : ℕ → affineSpan ℝ X := λ n => ⟨y'n n, hy'naff n⟩
-
-  rw [← closure_diff_intrinsicInterior, Set.mem_diff _, IsClosed.closure_eq hXcl, mem_intrinsicInterior] ; clear hXcl
-  refine ⟨ hyX, ?_ ⟩
-  rintro ⟨ y1, hy1, hy1y ⟩
-  revert hy1
-  rw [imp_false, ←Set.mem_compl_iff, ←closure_compl]
-
-  -- Finally using seq y'n to show y is a limit point of Xᶜ 
-  rw [mem_closure_iff_seq_limit]
-  use y''n
-  constructor
-  · -- 1. if y'n is in X then (as y is in a face) y'n & x are in F, contradiction
-    intro n hn
-    refine hxF (hFEx hxX hn hyF ?_ ).1 ; clear hFEx hxX 
-    apply mem_openSegment_of_ne_left_right hxy
-    · -- y = y'n?
-      intro hyy'n
-      change (AffineMap.lineMap x y) (1 + 1 / (↑n + 1:ℝ)) = y at hyy'n
-      rw [AffineMap.lineMap_apply x y (1 + 1 / (↑n + 1:ℝ))] at hyy'n
-      have hyy'n1 : (1 + 1 / (↑n + 1:ℝ)) • (y -ᵥ x) +ᵥ x -ᵥ x = y -ᵥ x := by rw [hyy'n]
-      rw [vadd_vsub_assoc, vsub_self, add_zero] at hyy'n1 ; clear hyy'n
-      have hyy'n2 : (1 + 1 / (↑n + 1:ℝ)) • (y -ᵥ x) - (1:ℝ) • (y -ᵥ x) = 0 := 
-        by rw [hyy'n1, one_smul, sub_self]
-      rw [← sub_smul (1 + 1 / (↑n + 1:ℝ)) 1 (y -ᵥ x), add_comm, add_sub_assoc, sub_self, 
-        add_zero, smul_eq_zero] at hyy'n2 ; clear hyy'n1
-      cases' hyy'n2 with h h
-      · 
-        exact (ne_of_lt (h1 n)).symm (by assumption)
-      ·
-        rw [vsub_eq_zero_iff_eq] at h
-        exact hxF (h ▸ hyF)
-    exact hySn n
-  clear hyF hxF hySn Sn hFEx hxX
-    
-  · -- 2. good ol' epsilon delta argument
-    rw [Metric.tendsto_atTop]
-    intro ε hε
-    use max 1 ⌈dist x y / ε⌉₊
-    intro n hn
-    rw [ge_iff_le, max_le_iff] at hn
-
-    -- boring inequality manipulations
-    have hεn : dist x y / n ≤ ε := by
-      clear y''n hy'naff y'n hyX hy1y y1 h1 F X
-      rw [Nat.ceil_le, div_le_iff hε, ← div_le_iff' ] at hn
-      exact hn.2
-      norm_cast
-      linarith
-      done
-    apply lt_of_lt_of_le ?_ hεn
-
-    rw [Subtype.dist_eq, hy1y, dist_lineMap_right, sub_add_cancel', div_eq_inv_mul, mul_one, norm_neg, 
-      norm_inv, Real.norm_eq_abs, div_eq_inv_mul, mul_lt_mul_right (dist_pos.mpr hxy), inv_lt_inv]
-    <;> norm_cast
-    simp only [lt_add_iff_pos_right]
-    simp only [add_pos_iff, or_true]
-    linarith
+lemma mem_cutSpace {H_ : Set (Halfspace E)} (x : E) : 
+  x ∈ cutSpace H_ ↔ ∀ Hi, Hi ∈ H_ → Hi.f.1 x ≤ Hi.α := by
+  constructor <;> intro h
+  · -- 1.
+    intro Hi HiH
+    unfold cutSpace at h
+    rw [Set.mem_sInter] at h
+    specialize h Hi ⟨ Hi, HiH, rfl ⟩
+    rw [Halfspace_mem] at h
+    exact h
     done
-  done 
+  · -- 2.
+    unfold cutSpace
+    rw [Set.mem_sInter]
+    rintro _ ⟨ Hi_, hHi_, rfl ⟩
+    specialize h Hi_ hHi_
+    rw [Halfspace_mem]
+    exact h
+    done
+    
+lemma empty_cutSpace (h : ∃ x : E, x ≠ 0) : ∃ (H_ : Set (Halfspace E)), cutSpace H_ = ∅ := by
+  rcases h with ⟨ x, hx ⟩
+  let xhat := (norm x)⁻¹ • x
+  let fval : NormedSpace.Dual ℝ E := InnerProductSpace.toDualMap ℝ _ xhat
+  let f : {f : (NormedSpace.Dual ℝ E) // norm f = 1} := ⟨ fval , (by
+    change norm (innerSL ℝ ((norm x)⁻¹ • x)) = 1
+    have := @norm_smul_inv_norm ℝ _ E _ _ x hx
+    rw [IsROrC.ofReal_real_eq_id, id_eq] at this 
+    rw [innerSL_apply_norm, this]
+    done
+  ) ⟩
+  refine ⟨ {Halfspace.mk f (-1), Halfspace.mk (-f) (-1)} , ?_ ⟩
+  
+  ext x
+  rw [Set.mem_empty_iff_false, iff_false, mem_cutSpace]
+  intro h
+  have h1 := h (Halfspace.mk f (-1)) (by simp)
+  have h2 := h (Halfspace.mk (-f) (-1)) (by simp)
+  rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
+  change f.1 x ≤ -1 at h1
+  linarith
+  done
 
-  lemma extremepointIsFace {X : Set E}
-    (x : E) (hxEx : x ∈ Set.extremePoints ℝ X) : IsFace {x} X :=
-    ⟨ convex_singleton _, isClosed_singleton, mem_extremePoints_iff_extreme_singleton.mp hxEx ⟩
+lemma hyperplane_cutSpace : ∀ (f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}) (c : ℝ), 
+  ∃ (H_ : Set (Halfspace E)), cutSpace H_ = {x | f.1 x = c} := by
+  refine fun f c => ⟨ {Halfspace.mk f c, Halfspace.mk (-f) (-c)}, ?_ ⟩
+  ext x
+  rw [mem_cutSpace, Set.mem_setOf]
+  constructor
+  · -- 1.
+    intro h
+    have h1 := h (Halfspace.mk f c) (by simp)
+    have h2 := h (Halfspace.mk (-f) (-c)) (by simp)
+    rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
+    change f.1 x ≤ c at h1
+    exact le_antisymm h1 h2
+  · -- 2.
+    intro h Hi hHi
+    simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, Set.mem_insert_iff] at hHi 
+    rcases hHi with rfl | rfl
+    · 
+      exact le_of_eq h
+    · 
+      rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg]
+      exact le_of_eq h.symm
+  done
 
--- Theorem 2.34 = closure_convexHull_extremePoints
+lemma inter_cutSpace (H_1 H_2 : Set (Halfspace E)) : 
+  cutSpace (H_1 ∪ H_2) = cutSpace H_1 ∩ cutSpace H_2 := by
+  ext x
+  rw [mem_cutSpace, Set.mem_inter_iff, mem_cutSpace, mem_cutSpace]
+  constructor
+  · -- 1
+    intro h
+    constructor <;> intro Hi_ hH_ <;> exact h Hi_ (by simp only [Set.mem_union, hH_, true_or, or_true])
+  · -- 2
+    intro h Hi hHi
+    rw [Set.mem_union] at hHi 
+    rcases hHi with hHi | hHi
+    · -- 2.1
+      exact h.1 Hi hHi
+    · -- 2.2
+      exact h.2 Hi hHi 
+  done

@@ -1,4 +1,6 @@
-import «Chapter2»
+import Pre
+import Hyperplane
+import Mathlib.Analysis.Convex.KreinMilman
 
 
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] 
@@ -43,24 +45,24 @@ lemma pointDual_comm (p q : {p : E // p ≠ 0}) :
   done
 
 
-noncomputable def polarDual (X : Set (E)) : Set (E) := 
+noncomputable def polarDual (X : Set E) : Set E := 
   ⋂₀ (SetLike.coe '' (pointDual '' (Subtype.val ⁻¹' X)))
 
-lemma polarDual_closed (X : Set (E)) : IsClosed (polarDual X) := by
+lemma polarDual_closed (X : Set E) : IsClosed (polarDual X) := by
   apply isClosed_sInter
   intro Hi_s h
   rw [Set.mem_image] at h
   rcases h with ⟨ Hi_, _, rfl ⟩
   exact Halfspace_closed _
 
-lemma polarDual_convex (X : Set (E)) : Convex ℝ (polarDual X) := by
+lemma polarDual_convex (X : Set E) : Convex ℝ (polarDual X) := by
   apply convex_sInter
   intro Hi_s h
   rw [Set.mem_image] at h
   rcases h with ⟨ Hi_, _, rfl ⟩
   exact Halfspace_convex _
 
-lemma polarDual_origin (X : Set (E)) : 
+lemma polarDual_origin (X : Set E) : 
   (0 : E) ∈ polarDual X := by
   intro Hi_s h
   rw [Set.mem_image] at h
@@ -69,7 +71,7 @@ lemma polarDual_origin (X : Set (E)) :
   rcases h with ⟨ p, _, rfl ⟩
   exact pointDual_origin p
 
-lemma mem_polarDual {X : Set (E)} {v : E}:
+lemma mem_polarDual {X : Set E} {v : E}:
   v ∈ polarDual X ↔ ∀ x ∈ X, inner x v ≤ (1:ℝ) := by
   unfold polarDual
   rw [Set.mem_sInter]
@@ -104,7 +106,7 @@ lemma mem_polarDual {X : Set (E)} {v : E}:
     done
   done
 
-lemma mem_polarDual' {X : Set (E)} {v : E}:
+lemma mem_polarDual' {X : Set E} {v : E}:
   v ∈ polarDual X ↔ ∀ x ∈ X, inner v x ≤ (1:ℝ) := by
   rw [mem_polarDual]
   constructor <;>
@@ -114,7 +116,7 @@ lemma mem_polarDual' {X : Set (E)} {v : E}:
     exact h x hx
   done
 
-lemma polarDual_comm_half (X Y : Set (E)) : 
+lemma polarDual_comm_half (X Y : Set E) : 
   X ⊆ polarDual Y → Y ⊆ polarDual X := by
   rw [Set.subset_def, Set.subset_def]
   intro h y hy
@@ -127,13 +129,12 @@ lemma polarDual_comm_half (X Y : Set (E)) :
   exact h
   done
 
-lemma polarDual_comm (X Y : Set (E)) :
+lemma polarDual_comm (X Y : Set E) :
   X ⊆ polarDual Y ↔ Y ⊆ polarDual X := by
   constructor <;> exact fun h => polarDual_comm_half _ _ h
   done
 
--- Compact condition not needed?
-lemma doublePolarDual_self {X : Set (E)} 
+lemma doublePolarDual_self {X : Set E} 
   (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) : polarDual (polarDual X) = X := by
   apply subset_antisymm
   · -- 1.
@@ -160,11 +161,11 @@ lemma doublePolarDual_self {X : Set (E)}
   done
 
 
-lemma polarDual_empty : polarDual (∅ : Set (E)) = Set.univ := by
+lemma polarDual_empty : polarDual (∅ : Set E) = Set.univ := by
   rw [polarDual, Set.preimage_empty, Set.image_empty, Set.image_empty, Set.sInter_empty]
   done
 
-lemma polarDual_zero : polarDual ({0} : Set (E)) = Set.univ := by
+lemma polarDual_zero : polarDual ({0} : Set E) = Set.univ := by
   rw [polarDual]
   have : (@Subtype.val E fun p => p ≠ 0) ⁻¹' {0} = ∅ := by
     rw [Set.preimage_singleton_eq_empty]
@@ -173,7 +174,7 @@ lemma polarDual_zero : polarDual ({0} : Set (E)) = Set.univ := by
   rw [this, Set.image_empty, Set.image_empty, Set.sInter_empty]
   done
 
-lemma compact_polarDual_iff [FiniteDimensional ℝ E] {X : Set (E)} (hXcl : IsClosed X) :
+lemma compact_polarDual_iff [FiniteDimensional ℝ E] {X : Set E} (hXcl : IsClosed X) :
   0 ∈ interior (polarDual X) ↔ IsCompact X := by
   cases' (em (X \ {0}).Nonempty) with hXnonempty hXempty
   · 
@@ -248,7 +249,7 @@ lemma compact_polarDual_iff [FiniteDimensional ℝ E] {X : Set (E)} (hXcl : IsCl
       exact ⟨ fun _ => isCompact_singleton, fun _ => trivial ⟩
     done
 
-lemma polarDual_compact_if [FiniteDimensional ℝ E] {X : Set (E)} (hXcl : IsClosed X) (hXcv : Convex ℝ X) :
+lemma polarDual_compact_if [FiniteDimensional ℝ E] {X : Set E} (hXcl : IsClosed X) (hXcv : Convex ℝ X) :
   0 ∈ interior X → IsCompact (polarDual X) := by
   intro h
   rw [← doublePolarDual_self hXcl hXcv (interior_subset h), compact_polarDual_iff (polarDual_closed _)] at h

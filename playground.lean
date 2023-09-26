@@ -90,7 +90,7 @@ lemma Hpolytope_of_Vpolytope_0 [FiniteDimensional ℝ E] {S : Set E} (hS : S.Fin
   have hH_12 := inter_Hpolytope H_1 H_2 hH_1 hH_2
   refine ⟨ H_, hH_, ?_ ⟩
   rw [hH_12, hVSimage, hH_2Span, ← hHV]
-  
+
   sorry
   done
 
@@ -126,11 +126,9 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] :
           rw [Set.mem_translation, neg_neg, zero_add]
           exact hs
 
-        let S'' := (@Subtype.val E (fun x => x ∈ (vectorSpan ℝ S'))) ⁻¹' S'
+        have : Nonempty (affineSpan ℝ S) := sorry
+        let S'' := (AffineSubspace.subtype (affineSpan ℝ S)) ⁻¹' S'
         have hS'' : S''.Finite := Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _) hS'
-        have hS''0 : 0 ∈ S'' := by
-          rw [Set.mem_preimage]
-          exact hS'0
 
         rcases @Hpolytope_of_Vpolytope_interior (vectorSpan ℝ S') _ _ _ _ _ hS'' _ with ⟨ H_''1, hH''1, hHV ⟩
 
