@@ -9,29 +9,37 @@ open Pointwise
 def Vpolytope {S : Set P} (_ : S.Finite) (x : P) : Set P :=
   convexHull ℝ (S -ᵥ {x}) +ᵥ {x}
 
-lemma Convex_Vpolytope {S : Set E} (hS : S.Finite) (x : P) : 
-  Convex ℝ (Vpolytope hS x) := convex_convexHull ℝ S
+-- convex_convexHull ℝ S
+-- Set.Finite.isClosed_convexHull hS
+-- Set.Finite.isCompact_convexHull hS
 
-lemma Closed_Vpolytope {S : Set E} (hS : S.Finite) : 
-  IsClosed (Vpolytope hS x) := by 
-  have := Set.Finite.isClosed_convexHull hS
-  have := @continuous_vadd E P _ _ _ _
-  
-  apply IsClosed.preimage this
+lemma IsClosed_Vpolytope {S : Set P} (hS : S.Finite) (x : P) : 
+  IsClosed (Vpolytope hS x) := by
+  unfold Vpolytope
+  apply IsClosed.vadd_right_of_isCompact ?_ isCompact_singleton
+  apply Set.Finite.isClosed_convexHull 
+  exact Set.detranslation.Finite hS x
 
-lemma Compact_Vpolytope {S : Set E} (hS : S.Finite) : 
-  IsCompact (Vpolytope hS x) := Set.Finite.isCompact_convexHull hS
+lemma IsCompact_Vpolytope {S : Set P} (hS : S.Finite) (x : P) : 
+  IsCompact (Vpolytope hS x) := by
+  unfold Vpolytope
+  rw [Set.vadd_singleton]
+  apply IsCompact.image ?_ (Set.translation.continuous x)
+  apply Set.Finite.isCompact_convexHull 
+  exact Set.detranslation.Finite hS x
 
+def Hpolytope {H_ : Set (Halfspace E)} (_ : H_.Finite) (x : P) : Set P :=
+  (cutSpace H_) +ᵥ {x}
 
-def Hpolytope {H_ : Set (Halfspace E)} (_ : H_.Finite) : Set E :=
-  ⋂₀ (SetLike.coe '' H_)
+-- lemma Convex_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) (x : P) :
+--   Convex ℝ (Hpolytope hH_ x) := by
+--   apply convex_sInter
+--   rintro _ ⟨ Hi_, _, rfl ⟩
+--   exact Halfspace_convex Hi_
 
-lemma Convex_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) : Convex ℝ (Hpolytope hH_) := by
-  apply convex_sInter
-  rintro _ ⟨ Hi_, _, rfl ⟩
-  exact Halfspace_convex Hi_
-
-lemma Closed_Hpolytope {H : Set (Halfspace E)} (hH_ : H.Finite) : IsClosed (Hpolytope hH_) := by
+lemma Closed_Hpolytope {H : Set (Halfspace E)} (hH_ : H.Finite) (x : P) : 
+  IsClosed (Hpolytope hH_ x) := by
+  apply IsClosed.vadd_right_of_isCompact ?_ isCompact_singleton
   apply isClosed_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
   change IsClosed Hi_
@@ -39,33 +47,20 @@ lemma Closed_Hpolytope {H : Set (Halfspace E)} (hH_ : H.Finite) : IsClosed (Hpol
   apply IsClosed.preimage (Hi_.f.1.cont)
   exact isClosed_Iic
 
-lemma mem_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) (x : E) : 
-  x ∈ Hpolytope hH_ ↔ ∀ Hi, Hi ∈ H_ → Hi.f.1 x ≤ Hi.α := by
-  constructor <;> intro h
-  · -- 1.
-    intro Hi HiH
-    unfold Hpolytope at h
-    rw [Set.mem_sInter] at h
-    specialize h Hi ⟨ Hi, HiH, rfl ⟩
-    rw [Halfspace_mem] at h
-    exact h
-    done
-  · -- 2.
-    unfold Hpolytope
-    rw [Set.mem_sInter]
-    rintro _ ⟨ Hi_, hHi_, rfl ⟩
-    specialize h Hi_ hHi_
-    rw [Halfspace_mem]
-    exact h
-    done
+lemma mem_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) (x y : P) : 
+  y ∈ Hpolytope hH_ x ↔ ∀ Hi, Hi ∈ H_ → Hi.f.1 (y -ᵥ x) ≤ Hi.α := by
+  rw [Hpolytope, cutSpace, Set.mem_translation, Set.mem_sInter]
+  refine ⟨ fun h Hi HiH => (Halfspace_mem Hi (y -ᵥ x)).mp (h Hi ⟨ Hi, HiH, rfl ⟩), ?_ ⟩
+  rintro h _ ⟨ Hi_, hHi_, rfl ⟩
+  exact (Halfspace_mem _ _).mp (h Hi_ hHi_)
     
-lemma empty_Hpolytope (h : ∃ x : E, x ≠ 0) : ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = ∅ := by
-  rcases h with ⟨ x, hx ⟩
-  let xhat := (norm x)⁻¹ • x
-  let fval : NormedSpace.Dual ℝ E := InnerProductSpace.toDualMap ℝ _ xhat
+lemma empty_Hpolytope (x : P) (h : ∃ point : E, point ≠ 0) : ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ x = ∅ := by
+  rcases h with ⟨ point, hpoint ⟩
+  let pointhat := (norm point)⁻¹ • point
+  let fval : NormedSpace.Dual ℝ E := InnerProductSpace.toDualMap ℝ _ pointhat
   let f : {f : (NormedSpace.Dual ℝ E) // norm f = 1} := ⟨ fval , (by
-    change norm (innerSL ℝ ((norm x)⁻¹ • x)) = 1
-    have := @norm_smul_inv_norm ℝ _ E _ _ x hx
+    change norm (innerSL ℝ ((norm point)⁻¹ • point)) = 1
+    have := @norm_smul_inv_norm ℝ _ E _ _ point hpoint
     rw [IsROrC.ofReal_real_eq_id, id_eq] at this 
     rw [innerSL_apply_norm, this]
     done
@@ -73,31 +68,31 @@ lemma empty_Hpolytope (h : ∃ x : E, x ≠ 0) : ∃ (H_ : Set (Halfspace E)) (h
   refine ⟨ {Halfspace.mk f (-1), Halfspace.mk (-f) (-1)} , 
     (by simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, Set.finite_singleton, Set.Finite.insert]) , ?_ ⟩
   
-  ext x
+  ext y
   rw [Set.mem_empty_iff_false, iff_false, mem_Hpolytope]
   intro h
   have h1 := h (Halfspace.mk f (-1)) (by simp)
   have h2 := h (Halfspace.mk (-f) (-1)) (by simp)
   rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
-  change f.1 x ≤ -1 at h1
+  change f.1 (y -ᵥ x) ≤ -1 at h1
   linarith
   done
 
-lemma hyperplane_Hpolytope : ∀ (f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}) (c : ℝ), 
-  ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = {x | f.1 x = c} := by
+lemma hyperplane_Hpolytope (x : P) : ∀ (f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}) (c : ℝ), 
+  ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ x = { y : E | f.1 y = c} +ᵥ {x} := by
   intro f c
   refine ⟨ {Halfspace.mk f c, Halfspace.mk (-f) (-c)}, 
     (by simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, Set.finite_singleton, Set.Finite.insert]) , ?_ ⟩
 
-  ext x
-  rw [mem_Hpolytope, Set.mem_setOf]
+  ext y
+  rw [mem_Hpolytope, Set.mem_translation, Set.mem_setOf]
   constructor
   · -- 1.
     intro h
     have h1 := h (Halfspace.mk f c) (by simp)
     have h2 := h (Halfspace.mk (-f) (-c)) (by simp)
     rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
-    change f.1 x ≤ c at h1
+    change f.1 (y -ᵥ x) ≤ c at h1
     exact le_antisymm h1 h2
   · -- 2.
     intro h Hi hHi
@@ -110,8 +105,8 @@ lemma hyperplane_Hpolytope : ∀ (f : {f : (NormedSpace.Dual ℝ E) // norm f = 
       exact le_of_eq h.symm
   done
 
-lemma inter_Hpolytope (H_1 H_2 : Set (Halfspace E)) (hH_1 : H_1.Finite) (hH_2 : H_2.Finite) : 
-  Hpolytope (Set.Finite.union hH_1 hH_2) = Hpolytope hH_1 ∩ Hpolytope hH_2 := by
+lemma inter_Hpolytope (x : P) (H_1 H_2 : Set (Halfspace E)) (hH_1 : H_1.Finite) (hH_2 : H_2.Finite) : 
+  Hpolytope (Set.Finite.union hH_1 hH_2) x = Hpolytope hH_1 x ∩ Hpolytope hH_2 x := by
   ext x
   rw [mem_Hpolytope, Set.mem_inter_iff, mem_Hpolytope, mem_Hpolytope]
   constructor
