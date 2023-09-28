@@ -1,6 +1,28 @@
-import «Chapter2» 
-import «Chapter3» 
+import Mathlib.Analysis.Convex.Cone.Proper
 import «Main»
+
+
+def Set.Subtype {α : Type} {property : α → Prop} (S : Set α) (hS : ∀ s ∈ S, property s) : 
+  ∃ S' : Set {x : α // property x}, Subtype.val '' S' = S ∧ Subtype.val ⁻¹' S = S':= by
+  have : ∃ S' : Set {x : α // property x}, Subtype.val '' S' = S := CanLift.prf S hS
+  rcases this with ⟨ S', hS' ⟩
+  refine ⟨ S', hS', ?_ ⟩ 
+  ext x
+  rw [Set.mem_preimage, ← hS', Set.mem_image]
+  constructor
+  · -- 1.
+    rintro ⟨ x', hx', hxx ⟩
+    rw [Subtype.coe_inj] at hxx
+    exact hxx ▸ hx'
+  · -- 2.
+    intro hx
+    exact ⟨ x, hx, rfl ⟩
+  done
+
+def Set.Subtype_bijOn {α : Type} {property : α → Prop} (S : Set α) (hS : ∀ s ∈ S, property s) : 
+  ∃ S' : Set {x : α // property x}, Set.BijOn Subtype.val S' S:= by
+  rcases (CanLift.prf S hS : ∃ S' : Set {x : α // property x}, Subtype.val '' S' = S) with ⟨ S', hS' ⟩
+  exact ⟨ S', by exact hS' ▸ Set.InjOn.bijOn_image (Set.injOn_of_injective Subtype.val_injective _) ⟩ 
 
 
 lemma Subspace_IsClosed {d : ℕ+} (p : Subspace ℝ (EuclideanSpace ℝ (Fin d))) : IsClosed (p : Set (EuclideanSpace ℝ (Fin d))) := by
@@ -12,91 +34,69 @@ lemma Subspace_IsClosed {d : ℕ+} (p : Subspace ℝ (EuclideanSpace ℝ (Fin d)
   done
 
 
-variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] 
+variable {E P : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] [PseudoMetricSpace P] [NormedAddTorsor E P] [FiniteDimensional ℝ E]
 open Pointwise
 
 
--- lemma subtypeval_comm_convexHull (S : Set E) : 
---   (@convexHull ℝ (vectorSpan ℝ S) _ _ _ (Subtype.val ⁻¹' S)) = Subtype.val ⁻¹' (convexHull ℝ S) := by
---   apply subset_antisymm
---   · -- ⊆
---     intro x hx
---     cases' hx with y hy
---     cases' hy with hy1 hy2
---     rw [← hy2]
---     exact ⟨ y, convexHull_mono (Set.image_subset _ hy1) hy1, rfl ⟩
---   · -- ⊇
---     intro x hx
---     cases' hx with y hy
---     cases' hy with hy1 hy2
---     rw [← hy2]
---     exact ⟨ y, convexHull_mono (Set.image_subset _ hy1) hy1, rfl ⟩
---   done
+def Submodule_cut (p : Subspace ℝ E) : Set (Halfspace E) := 
+  ⋃₀ (orthoHyperplane '' (Subtype.val ⁻¹' (Set.range (Subtype.val ∘ FiniteDimensional.finBasis ℝ pᗮ))))
 
 
-
-lemma Subspace_inter_Halfspaces (p : Subspace ℝ (EuclideanSpace ℝ (Fin d))) : ∃ H_ : Set (Halfspace (EuclideanSpace ℝ (Fin d))), ↑p = ⋂₀ (SetLike.coe '' H_) := by
-  
-  -- exists_maximal_orthonormal
+lemma Submodule_cut_finite (p : Subspace ℝ E) : (Submodule_cut p).Finite := by
+  apply Set.Finite.sUnion ?_ (fun t ht => by
+    rcases ht with ⟨ x, _, rfl ⟩
+    exact orthoHyperplane.Finite _)
+  apply Set.Finite.image
+  apply Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _)
+  apply Set.finite_range
   done
 
-noncomputable def Halfspace.val (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) : Halfspace E := by
-  rcases H_' with ⟨ ⟨ f, hf ⟩, C ⟩ 
-  have := Real.exists_extension_norm_eq p f
-  choose g hg using this
-  exact ⟨ ⟨ g, hg.2 ▸ hf ⟩, C ⟩
-  done
-
-lemma convexHull_Subtype_val_preimage (S : Set E) (p : Subspace ℝ E) : 
-  (@convexHull ℝ (vectorSpan ℝ S) _ _ _ (Subtype.val ⁻¹' S)) ⊆ Subtype.val ⁻¹' (convexHull ℝ S) := by
-  intro x hx
-  have : (@Subtype.val E (fun x => x ∈ (vectorSpan ℝ S))) ⁻¹' S ⊆ Subtype.val ⁻¹' (convexHull ℝ) S := by
-    apply Set.preimage_mono
-    exact subset_convexHull ℝ S
-    done
-  apply this
-
-  done
-
-lemma Hpolytope_of_Vpolytope_0 [FiniteDimensional ℝ E] {S : Set E} (hS : S.Finite) (hS0 : 0 ∈ S):
-  ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = Vpolytope hS := by
-  have hSinSpan : S ⊆ vectorSpan ℝ S := by
-    intro x hx
-    apply vsub_set_subset_vectorSpan
-    apply Set.vsub_subset_vsub_left (Set.singleton_subset_iff.mpr hS0)
-    rw [Set.vsub_singleton]
-    simp only [vsub_eq_sub, sub_zero, Set.image_id']
-    exact hx
-
-  let S' : Set (vectorSpan ℝ S) := (@Subtype.val E (fun x => x ∈ (vectorSpan ℝ S))) ⁻¹' S
-  have hS' : S'.Finite := Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _) hS
-  have : Set.Nonempty (interior (Vpolytope hS')) := by
-    change Set.Nonempty (interior (convexHull ℝ ((@Subtype.val E (fun x => x ∈ (vectorSpan ℝ S))) ⁻¹' S)))
+lemma Submodule_cutspace (p : Subspace ℝ E) : ∃ H_ : Set (Halfspace E), H_.Finite ∧ ↑p = ⋂₀ (SetLike.coe '' H_) := by
+  use Submodule_cut p
+  use Submodule_cut_finite p
+  ext x
+  constructor <;> rw [Set.mem_sInter]
+  · -- 1.
+    rintro hx Hi_ ⟨ H, ⟨ _, ⟨ v, ⟨ i, hi ⟩, rfl ⟩ , hHHalfpair ⟩, rfl ⟩
+    rw [Halfspace_mem]
+    revert hHHalfpair H
+    simp only [Function.comp_apply, ne_eq] at hi 
+    rw [← mem_cutSpace,  orthoHyperplane_mem, ← hi, Submodule.inner_left_of_mem_orthogonal hx]
+    exact Submodule.coe_mem ((FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i)
+  · -- 2.
+    rintro hHi_
+    by_contra h
     sorry
     done
-  have hVSimage : Vpolytope hS = Subtype.val '' (Vpolytope hS') := by sorry
-
-  rcases @Hpolytope_of_Vpolytope_interior (vectorSpan ℝ S) _ _ _ _ _ hS' this with ⟨ H_'1, hH_'1, hHV ⟩
-
-  let H_1 : Set (Halfspace E) := (Halfspace.val (vectorSpan ℝ S)) '' H_'1
-  have hH_1 : H_1.Finite := Set.Finite.image _ hH_'1
-
-  let H_2 : Set (Halfspace E) := by sorry
-  have hH_2 : H_2.Finite := by sorry
-  have hH_2Span : Hpolytope hH_2 = (vectorSpan ℝ S) := sorry
-
-  let H_ : Set (Halfspace E) := H_1 ∪ H_2
-  have hH_ : H_.Finite := Set.Finite.union hH_1 hH_2
-  have hH_12 := inter_Hpolytope H_1 H_2 hH_1 hH_2
-  refine ⟨ H_, hH_, ?_ ⟩
-  rw [hH_12, hVSimage, hH_2Span, ← hHV]
-
-  sorry
   done
 
 
+lemma Vpolytope_of_Vpolytope_inter_cutSpace_fin {S : Set E} (hS : S.Finite) (hVinterior : Set.Nonempty (interior (Vpolytope hS)))
+  {H_ : Set (Halfspace E)} (hH_ : H_.Finite) : 
+  ∃ (S' : Set E) (hS' : S'.Finite), Vpolytope hS' = Vpolytope hS ∩ Hpolytope hH_ := by
+  rcases Hpolytope_of_Vpolytope_interior _ hVinterior with ⟨ H_', hH_', hHV ⟩
+  have hH_inter := inter_Hpolytope H_' H_ hH_' hH_
+  have : IsCompact (Vpolytope hS ∩ Hpolytope hH_) := IsCompact.inter_right (Compact_Vpolytope hS) (Closed_cutSpace H_)
+  rw [← hHV, ← hH_inter] at this
+  rcases Vpolytope_of_Hpolytope (Set.Finite.union hH_' hH_) this with ⟨ S', hS', hSV ⟩
+  exact ⟨ S', hS', by rw [← hSV, ← hHV, ← hH_inter] ⟩
+  done
 
-theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] : 
+lemma toDirectionHomeo (x : P) : P ≃ₜ E where
+  toFun := (· -ᵥ x)
+  invFun := (· +ᵥ x)
+  left_inv := fun y => by simp
+  right_inv := fun y => by simp
+  continuous_toFun := continuous_curry_right x continuous_vsub
+  continuous_invFun := by continuity
+  
+lemma toDirectionHomeo.toFun.def (x : E) : 
+  ↑(translationHomeo x) = (· + x) := by
+  unfold translationHomeo
+  simp
+  done
+
+theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)): 
   (∀ (S : Set E) (hS : S.Finite), 
     ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), 
     Hpolytope hH_ = Vpolytope hS) ∧ 
@@ -111,10 +111,10 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] :
     · -- Interior is empty
       clear hVpolytopeIntEmpty
       /-
-      1. ConvexHull always have an intrinsic interior -- intrinsicInterior_nonempty!
-      2. Any AffineSubspaces are intersections of hyperplanes
+      1. ConvexHull always have an intrinsic interior -- intrinsicInterior_nonempty! but I need to deal with affine subspace
+      2. Any AffineSubspaces are intersections of hyperplanes -- Done!
       3. Any hyperplane is an intersection of two Halfspaces -- Done!
-      4. Take union of the set of Halfspaces for Hpolytope in the affineSpan and for the affineSpan
+      4. Take union of the set of Halfspaces for Hpolytope in the affineSpan and for the affineSpan -- Done!
       -/
       cases' em (S.Nonempty) with hSnonempty hSempty 
       · -- S is nonempty 
@@ -123,30 +123,10 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] :
         let S' := S + {-s}
         have hS' : S'.Finite := Set.translation.Finite hS (-s)
         have hS'0 : 0 ∈ S' := by
-          rw [Set.mem_translation, neg_neg, zero_add]
+          rw [Set.mem_translation, sub_eq_add_neg, zero_add, neg_neg]
           exact hs
 
         have : Nonempty (affineSpan ℝ S) := sorry
-        let S'' := (AffineSubspace.subtype (affineSpan ℝ S)) ⁻¹' S'
-        have hS'' : S''.Finite := Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _) hS'
-
-        rcases @Hpolytope_of_Vpolytope_interior (vectorSpan ℝ S') _ _ _ _ _ hS'' _ with ⟨ H_''1, hH''1, hHV ⟩
-
-        let H_'1 : Set (Halfspace E) := (Halfspace.val (vectorSpan ℝ S')) '' H_''1
-        have hH_'1 : H_'1.Finite := Set.Finite.image _ hH''1
-
-
-        let H_'2 : Set (Halfspace E) := by sorry
-        have hH_'2 : H_'2.Finite := by sorry
-
-        let H_' : Set (Halfspace E) := H_'1 ∪ H_'2
-        have hH_' : H_'.Finite := Set.Finite.union hH_'1 hH_'2
-        have hH_'12 := inter_Hpolytope H_'1 H_'2 hH_'1 hH_'2
-        have hH_'V' : Hpolytope hH_' = Vpolytope hS' := by sorry
-
-
-
-
         -- rw [← @convexHull_nonempty_iff ℝ] at hS'nonempty
         -- rw [← intrinsicInterior_nonempty (convex_convexHull ℝ S')] at hS'nonempty
         -- cases' hS'nonempty with x hx
@@ -160,6 +140,39 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] :
 
         -- rw [this] at x
         -- sorry
+        let S'' := (AffineSubspace.subtype (affineSpan ℝ S)) ⁻¹' S'
+        -- have hS'' : S''.Finite := Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _) hS'
+
+        -- ???
+
+
+
+        rcases @Hpolytope_of_Vpolytope_interior (vectorSpan ℝ S') _ _ _ _ _ sorry _ with ⟨ H_''1, hH''1, hHV ⟩
+
+        let H_'1 : Set (Halfspace E) := (Halfspace.val (vectorSpan ℝ S')) '' H_''1
+        have hH_'1 : H_'1.Finite := Set.Finite.image _ hH''1
+
+        rcases Submodule_cutspace (vectorSpan ℝ S') with ⟨ H_'2, hH_'2, hH_'2Span' ⟩
+        have hH_'2Span: Hpolytope hH_'2 = (vectorSpan ℝ S') := by
+          rw [Hpolytope]
+          exact hH_'2Span'.symm
+
+        let H_' : Set (Halfspace E) := H_'1 ∪ H_'2
+        have hH_' : H_'.Finite := Set.Finite.union hH_'1 hH_'2
+        have hH_'12 := inter_Hpolytope H_'1 H_'2 hH_'1 hH_'2
+
+        refine ⟨ H_', hH_', ?_ ⟩
+        rw [hH_'12, hH_'2Span, Hpolytope, ← Set.sInter_inter_comm]
+        change ⋂₀ ((fun x => x ∩ ↑(vectorSpan ℝ S')) '' ((fun x => SetLike.coe x) '' ((Halfspace.val (vectorSpan ℝ S')) '' H_''1))) = Vpolytope hS
+        rw [Set.image_image, Set.image_image, @Set.image_congr' _ _ _ _ (H_''1) (Halfspace.val_eq' (vectorSpan ℝ S')), 
+          ← Set.image_image, Set.sInter_image, ← Set.image_sInter ?_ (Subtype.val_injective)]
+        change Subtype.val '' Hpolytope hH''1 = Vpolytope hS
+        rw [hHV]
+        -- Hpolytope side Done!!! The rest needs Vpolytope side to be done
+        sorry
+        sorry
+        sorry
+        
         done
       · -- S is empty
         rw [← @convexHull_nonempty_iff ℝ, Set.not_nonempty_iff_eq_empty] at hSempty

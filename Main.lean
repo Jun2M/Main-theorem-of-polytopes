@@ -1,7 +1,7 @@
-import «Hpolytope»
+import «Polytope»
 
 
-variable {E P : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] [AddTorsor E P]
+variable {E  : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
 open Pointwise
 
 /-
@@ -12,41 +12,40 @@ Let 𝑋 be a closed convex subset of ℝ^𝑑. Then:
 Theorem : Every 𝑉-polytope is an 𝐻-polytope, and every compact 𝐻-polytope is a 𝑉-polytope.
 -/
 
--- lemma Vpolytope_translation {S : Set E} (hS : S.Finite) (x : P) : 
---   Vpolytope (@Set.translation.Finite E P _ _ S hS x) = (Vpolytope hS) +ᵥ {x}:= by
---   rw [Vpolytope, convexHull_add, convexHull_singleton]
---   rfl
---   done
+lemma Vpolytope_translation {S : Set E} (hS : S.Finite) (x : E) : 
+  Vpolytope (Set.translation.Finite hS x) = (Vpolytope hS) + {x}:= by
+  rw [Vpolytope, convexHull_add, convexHull_singleton]
+  rfl
+  done
 
--- lemma Hpolytope_translation {H_ : Set (Halfspace E)} (hH_ : H_.Finite) 
---   (x : E) : 
---   Hpolytope (Set.Finite.image (Halfspace_translation x) hH_) = Hpolytope hH_ x:= by
---   rw [Hpolytope, Hpolytope, Set.sInter_image, Set.sInter_image]
---   ext y
---   rw [Set.mem_iInter, Set.add_singleton]
---   simp only [Set.mem_iInter, SetLike.mem_coe, Set.image_add_right, Set.mem_preimage]
---   constructor
---   · -- 1.
---     intro h Hi_ hHi_
---     specialize h (Halfspace_translation x Hi_) (Set.mem_image_of_mem _ hHi_)
---     rw [← SetLike.mem_coe, mem_Halfspace_translation, sub_eq_add_neg] at h
---     exact h
---   · -- 2.
---     intro h Hi_ hHi_
---     specialize h (Halfspace_translation (-x) Hi_) (?_)
---     rw [Set.mem_image] at hHi_
---     rcases hHi_ with ⟨ Hi_', hHi_', rfl ⟩
---     have : Halfspace_translation (-x) (Halfspace_translation x Hi_') = Hi_':= by
---       rw [SetLike.ext_iff]
---       intro z
---       rw [← SetLike.mem_coe, ← SetLike.mem_coe, mem_Halfspace_translation, mem_Halfspace_translation, 
---         sub_neg_eq_add, add_sub_cancel]
---       done
---     rw [this]
---     assumption
---     rw [← SetLike.mem_coe, mem_Halfspace_translation, add_sub_cancel, SetLike.mem_coe] at h
---     exact h
---   done
+lemma Hpolytope_translation {H_ : Set (Halfspace E)} (hH_ : H_.Finite) (x : E) : 
+  Hpolytope (Set.Finite.image (Halfspace_translation x) hH_) = (Hpolytope hH_) + {x}:= by
+  rw [Hpolytope, Hpolytope, Set.sInter_image, Set.sInter_image]
+  ext y
+  rw [Set.mem_iInter, Set.add_singleton]
+  simp only [Set.mem_iInter, SetLike.mem_coe, Set.image_add_right, Set.mem_preimage]
+  constructor
+  · -- 1.
+    intro h Hi_ hHi_
+    specialize h (Halfspace_translation x Hi_) (Set.mem_image_of_mem _ hHi_)
+    rw [← SetLike.mem_coe, mem_Halfspace_translation, sub_eq_add_neg] at h
+    exact h
+  · -- 2.
+    intro h Hi_ hHi_
+    specialize h (Halfspace_translation (-x) Hi_) (?_)
+    rw [Set.mem_image] at hHi_
+    rcases hHi_ with ⟨ Hi_', hHi_', rfl ⟩
+    have : Halfspace_translation (-x) (Halfspace_translation x Hi_') = Hi_':= by
+      rw [SetLike.ext_iff]
+      intro z
+      rw [← SetLike.mem_coe, ← SetLike.mem_coe, mem_Halfspace_translation, mem_Halfspace_translation, 
+        sub_neg_eq_add, add_sub_cancel]
+      done
+    rw [this]
+    assumption
+    rw [← SetLike.mem_coe, mem_Halfspace_translation, add_sub_cancel, SetLike.mem_coe] at h
+    exact h
+  done
 
 
 -- As a ball around x is convex, it must contain a segment with x in its interior
@@ -526,7 +525,7 @@ lemma Hpolytope_of_Vpolytope_interior [FiniteDimensional ℝ E] {S : Set E} (hS 
     have := @Homeomorph.image_interior _ _ _ _ (translationHomeo (-hVinterior.some)) (Vpolytope hS)
     rw [translationHomeo.toFun.def] at this
     rw [← this]; clear this
-    rw [← Set.add_singleton, Set.mem_translation, neg_neg, zero_add]
+    rw [← Set.add_singleton, Set.mem_translation, zero_sub,  neg_neg]
     exact hVinterior.some_mem
     done
 
@@ -534,8 +533,8 @@ lemma Hpolytope_of_Vpolytope_interior [FiniteDimensional ℝ E] {S : Set E} (hS 
   let H_ := (Halfspace_translation hVinterior.some) '' H_'
   have hH_ : H_.Finite := Set.Finite.image _ hH_'
   
-  use H_
-  use hH_
+  refine ⟨ H_, hH_, ?_ ⟩
   ext x
-  rw [Hpolytope_translation, hH_'eq, Vpolytope_translation, Set.neg_add_cancel_right']
+  rw [Hpolytope_translation, hH_'eq, Vpolytope_translation hS, ← Set.sub_eq_neg_add,
+    Set.neg_add_cancel_right' (Set.Nonempty.some hVinterior)]
   done

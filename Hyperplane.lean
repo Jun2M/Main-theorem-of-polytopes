@@ -224,12 +224,12 @@ lemma Hyperplane_affineClosed (Hi_ : Halfspace E) :
 
 def cutSpace (H_ : Set (Halfspace E)) : Set E := ⋂₀ (SetLike.coe '' H_)
 
-lemma Convex_cutSpace {H_ : Set (Halfspace E)} : Convex ℝ (cutSpace H_) := by
+lemma Convex_cutSpace (H_ : Set (Halfspace E)) : Convex ℝ (cutSpace H_) := by
   apply convex_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
   exact Halfspace_convex Hi_
 
-lemma Closed_cutSpace {H : Set (Halfspace E)} : @IsClosed E _ (cutSpace H_) := by
+lemma Closed_cutSpace (H_ : Set (Halfspace E)) : IsClosed (cutSpace H_) := by
   apply isClosed_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
   change IsClosed Hi_
@@ -237,7 +237,7 @@ lemma Closed_cutSpace {H : Set (Halfspace E)} : @IsClosed E _ (cutSpace H_) := b
   apply IsClosed.preimage (Hi_.f.1.cont)
   exact isClosed_Iic
 
-lemma mem_cutSpace {H_ : Set (Halfspace E)} (x : E) : 
+lemma mem_cutSpace (H_ : Set (Halfspace E)) (x : E) : 
   x ∈ cutSpace H_ ↔ ∀ Hi, Hi ∈ H_ → Hi.f.1 x ≤ Hi.α := by
   constructor <;> intro h
   · -- 1.
@@ -280,9 +280,9 @@ lemma empty_cutSpace (h : ∃ x : E, x ≠ 0) : ∃ (H_ : Set (Halfspace E)), cu
   linarith
   done
 
-lemma hyperplane_cutSpace : ∀ (f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}) (c : ℝ), 
+lemma hyperplane_cutSpace (f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}) (c : ℝ) :
   ∃ (H_ : Set (Halfspace E)), cutSpace H_ = {x | f.1 x = c} := by
-  refine fun f c => ⟨ {Halfspace.mk f c, Halfspace.mk (-f) (-c)}, ?_ ⟩
+  refine ⟨ {Halfspace.mk f c, Halfspace.mk (-f) (-c)}, ?_ ⟩
   ext x
   rw [mem_cutSpace, Set.mem_setOf]
   constructor
@@ -320,4 +320,59 @@ lemma inter_cutSpace (H_1 H_2 : Set (Halfspace E)) :
       exact h.1 Hi hHi
     · -- 2.2
       exact h.2 Hi hHi 
+  done
+
+
+lemma Halfspace.val_raw (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) : 
+  ∃ H_ : Halfspace E, ((∀ (x : { x // x ∈ p }), H_.f.1 x = H_'.f.1 x) ∧ ‖H_.f.1‖ = ‖H_'.f.1‖) ∧ H_.α = H_'.α := by
+  rcases H_' with ⟨ ⟨ f, hf ⟩, C ⟩ 
+  choose g hg using Real.exists_extension_norm_eq p f
+  exact ⟨ ⟨ ⟨ g, hg.2 ▸ hf ⟩, C ⟩, hg, rfl ⟩ 
+
+noncomputable def Halfspace.val (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) : 
+  Halfspace E := by 
+  choose H_ _ using (Halfspace.val_raw p H_')  
+  exact H_
+
+lemma Halfspace.val_f (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) : 
+  ∀ (x : { x // x ∈ p }), (Halfspace.val p H_').f.1 x = H_'.f.1 x  := by
+  unfold val
+  exact (Classical.choose_spec (Halfspace.val_raw p H_')).1.1 
+
+lemma Halfspace.val_C (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) : 
+  (Halfspace.val p H_').α = H_'.α := by
+  unfold val
+  exact (Classical.choose_spec (Halfspace.val_raw p H_')).2
+
+lemma Halfspace.val_eq (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) : 
+  (Halfspace.val p H_' : Set E) ∩ ↑p = (Subtype.val '' (H_' : Set p)) := by
+  have := Halfspace.val_f p H_'
+  apply subset_antisymm <;> intro x <;> rw [Set.mem_inter_iff, Set.mem_image]
+  · 
+    rintro ⟨ hxH_', hxp ⟩
+    refine ⟨ ⟨ x, hxp ⟩, ?_, rfl ⟩ 
+    rw [Halfspace_mem, ← (this ⟨ x, hxp ⟩), ← Halfspace.val_C p H_']
+    exact hxH_'
+  · 
+    rintro ⟨ ⟨ x', hx'p ⟩, hx'H_', rfl ⟩
+    refine ⟨ ?_, hx'p ⟩
+    rw [Halfspace_mem, ← (this ⟨ x', hx'p ⟩), ← Halfspace.val_C p H_'] at hx'H_'
+    exact hx'H_'
+  done
+
+lemma Halfspace.val_eq' (p : Subspace ℝ E) [CompleteSpace p] : ∀ (H_' : Halfspace p),
+  (fun H_ => (Halfspace.val p H_ : Set E) ∩ ↑p) H_' = (fun H_ => (@Subtype.val E fun x => x ∈ p) '' (H_ : Set p)) (SetLike.coe H_') := by
+  intro H_'
+  have := Halfspace.val_f p H_'
+  apply subset_antisymm <;> intro x <;> rw [Set.mem_inter_iff, Set.mem_image]
+  · 
+    rintro ⟨ hxH_', hxp ⟩
+    refine ⟨ ⟨ x, hxp ⟩, ?_, rfl ⟩ 
+    rw [Halfspace_mem, ← (this ⟨ x, hxp ⟩), ← Halfspace.val_C p H_']
+    exact hxH_'
+  · 
+    rintro ⟨ ⟨ x', hx'p ⟩, hx'H_', rfl ⟩
+    refine ⟨ ?_, hx'p ⟩
+    rw [Halfspace_mem, ← (this ⟨ x', hx'p ⟩), ← Halfspace.val_C p H_'] at hx'H_'
+    exact hx'H_'
   done

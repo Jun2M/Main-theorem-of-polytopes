@@ -5,16 +5,18 @@ import Mathlib.Analysis.Convex.KreinMilman
 
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] 
 
-
--- Given non-zero vector p, define the halfspace of vectors x such that inner p x ≤ 1
-noncomputable def pointDual (p : {p : E // p ≠ 0}) : Halfspace E :=
-  Halfspace.mk ⟨ (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)), (by
+noncomputable def pointDualLin (p : {p : E // p ≠ 0}) : {f : (NormedSpace.Dual ℝ E) // norm f = 1} :=
+  ⟨ (InnerProductSpace.toDual ℝ _ ((norm p.1)⁻¹ • p.1)), (by
   simp only [ne_eq, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real]
   have : norm ((InnerProductSpace.toDual ℝ E) ↑p) = norm p.1 := by simp
   rw [← this]
   apply norm_smul_inv_norm
   rw [ne_eq, AddEquivClass.map_eq_zero_iff]
-  exact p.2) ⟩ (norm p.1)⁻¹
+  exact p.2) ⟩
+
+-- Given non-zero vector p, define the halfspace of vectors x such that inner p x ≤ 1
+noncomputable def pointDual (p : {p : E // p ≠ 0}) : Halfspace E :=
+  Halfspace.mk (pointDualLin p) (norm p.1)⁻¹
 
 lemma pointDual.α (p : {p : E // p ≠ 0}) : (pointDual p).α = (norm p.1)⁻¹ := by rfl
 
@@ -31,9 +33,8 @@ lemma pointDual_origin (p : {p : E // p ≠ 0}) :
   exact ⟨ zero_lt_one, by rw [norm_pos_iff]; exact p.2 ⟩
   done
 
-lemma mem_pointDual (p : {p : E // p ≠ 0}) : 
-  ∀ x, x ∈ (SetLike.coe <| pointDual p) ↔ inner p.1 x ≤ (1:ℝ) := by
-  intro x
+lemma mem_pointDual (p : {p : E // p ≠ 0}) (x : E): 
+  x ∈ (SetLike.coe <| pointDual p) ↔ inner p.1 x ≤ (1:ℝ) := by
   rw [pointDual.h, Set.mem_preimage, InnerProductSpace.toDual_apply, Set.mem_setOf, 
     inner_smul_left, IsROrC.conj_to_real, ← mul_le_mul_left (by rw [norm_pos_iff]; exact p.2 : 0 < norm p.1), 
     ← mul_assoc, mul_inv_cancel (norm_ne_zero_iff.mpr p.2), one_mul]
@@ -256,3 +257,44 @@ lemma polarDual_compact_if [FiniteDimensional ℝ E] {X : Set E} (hXcl : IsClose
   exact h
   done
 
+
+def orthoHyperplane (x : {x : E // x ≠ 0}) : Set (Halfspace E) := 
+  { Halfspace.mk (pointDualLin x) 0, Halfspace.mk (pointDualLin ⟨ -x.1, by rw [neg_ne_zero]; exact x.2 ⟩) 0 }
+
+lemma orthoHyperplane.Finite (x : {x : E // x ≠ 0}) : (orthoHyperplane x).Finite := by
+  unfold orthoHyperplane
+  simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, and_true, Set.finite_singleton, Set.Finite.insert]
+
+lemma orthoHyperplane_mem (x : {x : E // x ≠ 0}) : ∀ (y : E), y ∈ cutSpace (orthoHyperplane x) ↔ inner x.1 y = (0:ℝ) := by
+  intro y
+  rw [mem_cutSpace]
+  constructor
+  · -- 1.
+    intro h
+    have h1 := h (Halfspace.mk (pointDualLin x) 0)
+    simp only [pointDualLin, ne_eq, map_inv₀, IsROrC.conj_to_real, orthoHyperplane, Set.mem_singleton_iff,
+      Halfspace.mk.injEq, and_true, Set.mem_insert_iff, true_or, forall_true_left, InnerProductSpace.toDual_apply, 
+      inner_smul_left] at h1  
+    
+    have h2 := h (Halfspace.mk (pointDualLin ⟨ -x.1, by rw [neg_ne_zero]; exact x.2 ⟩) 0)
+    simp only [pointDualLin, ne_eq, norm_neg, smul_neg, map_inv₀, IsROrC.conj_to_real, orthoHyperplane, 
+      Set.mem_singleton_iff, Halfspace.mk.injEq, Subtype.mk.injEq, and_true, Set.mem_insert_iff,
+      or_true, forall_true_left, InnerProductSpace.toDual_apply, inner_neg_left, inner_smul_left] at h2 
+    rw [neg_le, neg_zero] at h2
+    have := le_antisymm h1 h2
+    rw [mul_eq_zero] at this
+    cases' this with h3 h4
+    · 
+      rw [inv_eq_zero, norm_eq_zero] at h3
+      exfalso
+      exact x.2 h3
+    ·
+      exact h4 
+  · -- 2.
+    intro h H hH
+    unfold orthoHyperplane at hH
+    simp only [ne_eq, Set.mem_singleton_iff, Halfspace.mk.injEq, and_true, Set.mem_insert_iff] at hH 
+    cases' hH with H H <;>
+    simp only [H, pointDualLin, norm_neg, smul_neg, map_inv₀, IsROrC.conj_to_real, InnerProductSpace.toDual_apply, 
+        inner_neg_left, inner_smul_left, neg_le, neg_zero, h, mul_zero, le_refl]
+  done

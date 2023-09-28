@@ -12,7 +12,7 @@ lean_lib «hyperplane» {
   -- add any library configuration options here
 }
 
-lean_lib «Hpolytope» {
+lean_lib «Polytope» {
   -- add any library configuration options here
 }
 
