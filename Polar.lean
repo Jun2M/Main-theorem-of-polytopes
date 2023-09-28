@@ -298,3 +298,27 @@ lemma orthoHyperplane_mem (x : {x : E // x ≠ 0}) : ∀ (y : E), y ∈ cutSpace
     simp only [H, pointDualLin, norm_neg, smul_neg, map_inv₀, IsROrC.conj_to_real, InnerProductSpace.toDual_apply, 
         inner_neg_left, inner_smul_left, neg_le, neg_zero, h, mul_zero, le_refl]
   done
+
+lemma cutSpace_sUnion_orthoHyperplane (X : Set {x : E // x ≠ 0}) : ∀ (y : E), y ∈ cutSpace (⋃₀ (orthoHyperplane '' X)) ↔ ∀ (i : ↑(orthoHyperplane '' X)), y ∈ cutSpace ↑i := by
+  intro y
+  unfold cutSpace
+  rw [Set.sUnion_eq_iUnion, Set.image_iUnion, Set.sInter_iUnion, Set.mem_iInter]
+
+lemma orthoHyperplanes_mem (X : Set {x : E // x ≠ 0}) : ∀ (y : E), y ∈ cutSpace (⋃₀ (orthoHyperplane '' X)) ↔ ∀ x ∈ X, inner x.1 y = (0:ℝ) := by
+  intro y
+  rw [cutSpace_sUnion_orthoHyperplane]
+  constructor
+  · -- 1.
+    intro h
+    intro x hx
+    simp at h
+    specialize h (orthoHyperplane x) x.1 x.2 hx rfl
+    exact (orthoHyperplane_mem x y).mp h
+  · -- 2.
+    intro h
+    simp
+    rintro a x1 x2 hx rfl
+    rw [orthoHyperplane_mem]
+    exact h _ hx
+  done
+

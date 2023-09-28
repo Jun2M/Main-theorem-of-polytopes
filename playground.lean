@@ -51,11 +51,11 @@ lemma Submodule_cut_finite (p : Subspace ℝ E) : (Submodule_cut p).Finite := by
   apply Set.finite_range
   done
 
-lemma Submodule_cutspace (p : Subspace ℝ E) : ∃ H_ : Set (Halfspace E), H_.Finite ∧ ↑p = ⋂₀ (SetLike.coe '' H_) := by
+lemma Submodule_cutspace (p : Subspace ℝ E) : ∃ H_ : Set (Halfspace E), H_.Finite ∧ ↑p = cutSpace H_ := by
   use Submodule_cut p
   use Submodule_cut_finite p
   ext x
-  constructor <;> rw [Set.mem_sInter]
+  constructor
   · -- 1.
     rintro hx Hi_ ⟨ H, ⟨ _, ⟨ v, ⟨ i, hi ⟩, rfl ⟩ , hHHalfpair ⟩, rfl ⟩
     rw [Halfspace_mem]
@@ -65,8 +65,20 @@ lemma Submodule_cutspace (p : Subspace ℝ E) : ∃ H_ : Set (Halfspace E), H_.F
     exact Submodule.coe_mem ((FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i)
   · -- 2.
     rintro hHi_
-    by_contra h
-    sorry
+    rw [Submodule_cut, orthoHyperplanes_mem] at hHi_
+    rw [SetLike.mem_coe, ← Submodule.orthogonal_orthogonal p, Submodule.mem_orthogonal]
+    intro y hy
+    have : ∀ i, inner (Subtype.val (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ } i)) x = (0:ℝ) := by
+      -- equivalent to hHi_, TODO
+      sorry
+      done
+    
+    rw [Basis.mem_submodule_iff' (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ })] at hy
+    rcases hy with ⟨ a, rfl ⟩
+    rw [sum_inner]
+    apply Finset.sum_eq_zero
+    intro i hi
+    rw [real_inner_comm, inner_smul_right, real_inner_comm, this i, mul_zero]
     done
   done
 
