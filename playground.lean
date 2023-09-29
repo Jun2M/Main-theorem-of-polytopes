@@ -94,19 +94,33 @@ lemma Vpolytope_of_Vpolytope_inter_cutSpace_fin {S : Set E} (hS : S.Finite) (hVi
   exact ⟨ S', hS', by rw [← hSV, ← hHV, ← hH_inter] ⟩
   done
 
-lemma toDirectionHomeo (x : P) : P ≃ₜ E where
+def Equiv.VSubconst (x : P) : P ≃ E where
   toFun := (· -ᵥ x)
   invFun := (· +ᵥ x)
   left_inv := fun y => by simp
   right_inv := fun y => by simp
-  continuous_toFun := continuous_curry_right x continuous_vsub
-  continuous_invFun := by continuity
-  
-lemma toDirectionHomeo.toFun.def (x : E) : 
-  ↑(translationHomeo x) = (· + x) := by
-  unfold translationHomeo
-  simp
-  done
+
+def LinearEquiv.id : E ≃ₗ[ℝ] E where
+  toFun := AddHom.id E 
+  invFun := AddHom.id E
+  left_inv := fun y => by simp
+  right_inv := fun y => by simp
+  map_add' := by simp
+  map_smul' := by simp
+
+lemma LinearEquiv.id_apply (x : E) : LinearEquiv.id x = x := rfl
+
+def AffineEquiv.VSubconst (x : P) : P ≃ᵃ[ℝ] E where
+  toEquiv := Equiv.constVSub x
+  linear := LinearEquiv.neg ℝ
+  map_vadd' p' v := by simp [(Equiv.coe_constVSub), (vsub_vadd_eq_vsub_sub), neg_add_eq_sub]
+
+lemma AffineEquiv.Vsubconst_linear_apply (x : P) (v : E) : (AffineEquiv.VSubconst x).linear v = -v := rfl
+
+def AffineIsometryEquiv.VSubconst (x : P) : P ≃ᵃⁱ[ℝ] E where
+  toAffineEquiv := AffineEquiv.VSubconst x
+  norm_map := by simp [AffineEquiv.Vsubconst_linear_apply]
+
 
 theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)): 
   (∀ (S : Set E) (hS : S.Finite), 
@@ -132,32 +146,38 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)
       · -- S is nonempty 
         have := hSnonempty
         rcases this with ⟨ s, hs ⟩
-        let S' := S + {-s}
-        have hS' : S'.Finite := Set.translation.Finite hS (-s)
-        have hS'0 : 0 ∈ S' := by
-          rw [Set.mem_translation, sub_eq_add_neg, zero_add, neg_neg]
+        have hsaff : s ∈ affineSpan ℝ ((convexHull ℝ) S) := by
+          rw [affineSpan_convexHull]
+          apply subset_affineSpan
           exact hs
+        let s' : affineSpan ℝ ((convexHull ℝ) S) := ⟨ s, hsaff ⟩
+        have haffn0 : Nonempty { x // x ∈ affineSpan ℝ ((convexHull ℝ) S) } := Set.Nonempty.to_subtype <| Set.nonempty_of_mem hsaff
+        have haffNormedAddTorsor := (affineSpan ℝ ((convexHull ℝ) S)).toNormedAddTorsor
+        -- let S' := S + {-s}
+        -- have hS' : S'.Finite := Set.translation.Finite hS (-s)
+        -- have hS'0 : 0 ∈ S' := by
+        --   rw [Set.mem_translation, sub_eq_add_neg, zero_add, neg_neg]
+        --   exact hs
 
-        have : Nonempty (affineSpan ℝ S) := sorry
-        -- rw [← @convexHull_nonempty_iff ℝ] at hS'nonempty
-        -- rw [← intrinsicInterior_nonempty (convex_convexHull ℝ S')] at hS'nonempty
-        -- cases' hS'nonempty with x hx
-        -- unfold intrinsicInterior at hx
-        -- rw [Set.mem_image] at hx
-        -- rcases hx with ⟨ x, hx, rfl ⟩
-        -- have : (spanPoints ℝ S') = vectorSpan ℝ S' := by
-        --   sorry
-        --   done
-        -- have := @affineSpan_convexHull ℝ _ _ _ _ S'
 
-        -- rw [this] at x
-        -- sorry
-        let S'' := (AffineSubspace.subtype (affineSpan ℝ S)) ⁻¹' S'
+        rw [← @convexHull_nonempty_iff ℝ, ← intrinsicInterior_nonempty (convex_convexHull ℝ S), 
+          intrinsicInterior, Set.nonempty_image_iff, 
+          ← @Set.nonempty_image_iff _ _ ((AffineIsometryEquiv.VSubconst s').toHomeomorph ) _] at hSnonempty
+        rcases hSnonempty with ⟨ x, hx ⟩
+        rw [Homeomorph.image_interior] at hx 
+
+        -- hope
+        have : ∃ S', convexHull ℝ S' = (AffineIsometryEquiv.VSubconst s').toHomeomorph ''
+          ((@Subtype.val E fun x => x ∈ ↑(affineSpan ℝ ((convexHull ℝ) S))) ⁻¹' (convexHull ℝ) S) := by
+          sorry
+          done
+        rcases this with ⟨ S', hS' ⟩
+        rw [← hS'] at hx -- ???
+        
+        -- let S'' := (AffineSubspace.subtype (affineSpan ℝ S)) ⁻¹' S'
         -- have hS'' : S''.Finite := Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _) hS'
 
         -- ???
-
-
 
         rcases @Hpolytope_of_Vpolytope_interior (vectorSpan ℝ S') _ _ _ _ _ sorry _ with ⟨ H_''1, hH''1, hHV ⟩
 
