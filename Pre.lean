@@ -94,3 +94,32 @@ lemma continuous_curry_right {α : Type u} {β : Type v} {γ : Type u_1} [Topolo
   [TopologicalSpace β] [TopologicalSpace γ] {g : α × β → γ} (b : β) (h : Continuous g) :
   Continuous (λ a => Function.curry g a b) := by 
   exact continuous_curry b <| @Continuous.comp (β × α) (α × β) γ _ _ _ g (Prod.swap) h (continuous_swap) 
+
+
+def Equiv.VSubconst (𝕜 : Type) {E P : Type} [Field 𝕜] [AddCommGroup E] [Module 𝕜 E] [AddTorsor E P] (x : P) : 
+  P ≃ E where
+  toFun := (· -ᵥ x)
+  invFun := (· +ᵥ x)
+  left_inv := fun y => by simp
+  right_inv := fun y => by simp
+
+lemma Equiv.coe_VSubconst { 𝕜 E P : Type} [Field 𝕜] [AddCommGroup E] [Module 𝕜 E] [AddTorsor E P] (x : P) : 
+  ↑(Equiv.VSubconst 𝕜 x) = (· -ᵥ x) := rfl
+
+def AffineEquiv.VSubconst (𝕜 : Type) {E P : Type} [Field 𝕜] [AddCommGroup E] [Module 𝕜 E] [AddTorsor E P] (x : P) : P ≃ᵃ[𝕜] E where
+  toEquiv := Equiv.VSubconst 𝕜 x
+  linear := LinearEquiv.refl 𝕜 _
+  map_vadd' p' v := by simp [(Equiv.coe_VSubconst), vadd_vsub_assoc]
+
+lemma AffineEquiv.Vsubconst_toEquiv (𝕜 : Type) {E P : Type} [Field 𝕜] [AddCommGroup E] [Module 𝕜 E] [AddTorsor E P] (x : P) : (AffineEquiv.VSubconst 𝕜 x).toEquiv = Equiv.VSubconst 𝕜 x := rfl
+
+lemma AffineEquiv.Vsubconst_linear_apply (𝕜 : Type) {E P : Type} [Field 𝕜] [AddCommGroup E] [Module 𝕜 E] [AddTorsor E P] (x : P) (v : E) : (AffineEquiv.VSubconst 𝕜 x).linear v = v := rfl
+
+lemma AffineEquiv.coe_VSubconst (𝕜 : Type) {E P : Type} [Field 𝕜] [AddCommGroup E] [Module 𝕜 E] [AddTorsor E P] (x : P) : ↑(AffineEquiv.VSubconst 𝕜 x) = (· -ᵥ x) := by rfl
+
+def AffineIsometryEquiv.VSubconst (𝕜 : Type) {E P : Type} [NormedField 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E] [PseudoMetricSpace P] [NormedAddTorsor E P] (x : P) : P ≃ᵃⁱ[𝕜] E where
+  toAffineEquiv := AffineEquiv.VSubconst 𝕜 x
+  norm_map := by simp [AffineEquiv.Vsubconst_linear_apply]
+
+@[simp]
+lemma AffineIsometryEquiv.coe_VSubconst (𝕜 : Type) {E P : Type} [NormedField 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E] [PseudoMetricSpace P] [NormedAddTorsor E P] (x : P) : ↑(AffineIsometryEquiv.VSubconst 𝕜 x) = (· -ᵥ x) := rfl

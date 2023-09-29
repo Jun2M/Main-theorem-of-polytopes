@@ -69,15 +69,16 @@ lemma Submodule_cutspace (p : Subspace ℝ E) : ∃ H_ : Set (Halfspace E), H_.F
     rw [SetLike.mem_coe, ← Submodule.orthogonal_orthogonal p, Submodule.mem_orthogonal]
     intro y hy
     have : ∀ i, inner (Subtype.val (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ } i)) x = (0:ℝ) := by
-      -- equivalent to hHi_, TODO
-      sorry
-      done
+      intro i
+      let v : E := (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i        
+      let v' : { x // x ≠ 0 } := ⟨ v, fun hv => (Basis.ne_zero (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i) (Submodule.coe_eq_zero.mp hv) ⟩
+      exact hHi_ v' ⟨ i, rfl ⟩
     
     rw [Basis.mem_submodule_iff' (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ })] at hy
     rcases hy with ⟨ a, rfl ⟩
     rw [sum_inner]
     apply Finset.sum_eq_zero
-    intro i hi
+    intro i _
     rw [real_inner_comm, inner_smul_right, real_inner_comm, this i, mul_zero]
     done
   done
@@ -94,33 +95,6 @@ lemma Vpolytope_of_Vpolytope_inter_cutSpace_fin {S : Set E} (hS : S.Finite) (hVi
   exact ⟨ S', hS', by rw [← hSV, ← hHV, ← hH_inter] ⟩
   done
 
-def Equiv.VSubconst (x : P) : P ≃ E where
-  toFun := (· -ᵥ x)
-  invFun := (· +ᵥ x)
-  left_inv := fun y => by simp
-  right_inv := fun y => by simp
-
-lemma Equiv.coe_VSubconst (x : P) : ↑(Equiv.VSubconst x) = (· -ᵥ x) := rfl
-
-def AffineEquiv.VSubconst (x : P) : P ≃ᵃ[ℝ] E where
-  toEquiv := Equiv.VSubconst x
-  linear := LinearEquiv.refl ℝ _
-  map_vadd' p' v := by simp [(Equiv.coe_VSubconst), vadd_vsub_assoc]
-
-lemma AffineEquiv.Vsubconst_toEquiv (x : P) : (AffineEquiv.VSubconst x).toEquiv = Equiv.VSubconst x := rfl
-
-lemma AffineEquiv.Vsubconst_linear_apply (x : P) (v : E) : (AffineEquiv.VSubconst x).linear v = v := rfl
-
-lemma AffineEquiv.coe_VSubconst (x : P) : ↑(AffineEquiv.VSubconst x) = (· -ᵥ x) := by rfl
-
-def AffineIsometryEquiv.VSubconst (x : P) : P ≃ᵃⁱ[ℝ] E where
-  toAffineEquiv := AffineEquiv.VSubconst x
-  norm_map := by simp [AffineEquiv.Vsubconst_linear_apply]
-
-@[simp]
-lemma AffineIsometryEquiv.coe_VSubconst (x : P) : ↑(AffineIsometryEquiv.VSubconst x) = (· -ᵥ x) := rfl
-
-
 theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)): 
   (∀ (S : Set E) (hS : S.Finite), 
     ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), 
@@ -136,10 +110,10 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)
     · -- Interior is empty
       clear hVpolytopeIntEmpty
       /-
-      1. ConvexHull always have an intrinsic interior -- intrinsicInterior_nonempty! but I need to deal with affine subspace
-      2. Any AffineSubspaces are intersections of hyperplanes -- Done!
-      3. Any hyperplane is an intersection of two Halfspaces -- Done!
-      4. Take union of the set of Halfspaces for Hpolytope in the affineSpan and for the affineSpan -- Done!
+      1. ConvexHull always have an intrinsic interior
+      2. Any AffineSubspaces are intersections of hyperplanes
+      3. Any hyperplane is an intersection of two Halfspaces
+      4. Take union of the set of Halfspaces for Hpolytope in the affineSpan and for the affineSpan
       -/
       cases' em (S.Nonempty) with hSnonempty hSempty 
       · -- S is nonempty 
@@ -153,15 +127,14 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)
         let SpanS := affineSpan ℝ ((convexHull ℝ) S)
         let s' : SpanS := ⟨ s, hsaff ⟩
         have haffn0 : Nonempty { x // x ∈ SpanS } := Set.Nonempty.to_subtype <| Set.nonempty_of_mem hsaff
-        -- have haffNormedAddTorsor := SpanS.toNormedAddTorsor
 
         rw [← @convexHull_nonempty_iff ℝ, ← intrinsicInterior_nonempty (convex_convexHull ℝ S), 
           intrinsicInterior, Set.nonempty_image_iff, 
-          ← @Set.nonempty_image_iff _ _ ((AffineIsometryEquiv.VSubconst s').toHomeomorph ) _] at hSnonempty
+          ← @Set.nonempty_image_iff _ _ ((AffineIsometryEquiv.VSubconst ℝ s').toHomeomorph ) _] at hSnonempty
         rcases hSnonempty with ⟨ x, hx ⟩
         rw [Homeomorph.image_interior] at hx 
 
-        let A := (AffineIsometryEquiv.VSubconst s').toHomeomorph '' ((@Subtype.val E fun x => x ∈ ↑SpanS) ⁻¹' (convexHull ℝ) S)
+        let A := (AffineIsometryEquiv.VSubconst ℝ s').toHomeomorph '' ((@Subtype.val E fun x => x ∈ ↑SpanS) ⁻¹' (convexHull ℝ) S)
         change x ∈ interior A at hx
 
 
@@ -198,7 +171,7 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)
           ← Set.image_image, Set.sInter_image, ← Set.image_sInter ?_ (Subtype.val_injective)]
         change Subtype.val '' Hpolytope hH''1 + {s} = Vpolytope hS
         rw [hHV, Vpolytope, hS'eq]
-        change Subtype.val '' ((AffineIsometryEquiv.toHomeomorph (AffineIsometryEquiv.VSubconst s')) '' (Subtype.val ⁻¹' (convexHull ℝ) S)) + {s} = Vpolytope hS
+        change Subtype.val '' ((AffineIsometryEquiv.toHomeomorph (AffineIsometryEquiv.VSubconst ℝ s')) '' (Subtype.val ⁻¹' (convexHull ℝ) S)) + {s} = Vpolytope hS
         rw [AffineIsometryEquiv.coe_toHomeomorph]
         
 
