@@ -33,6 +33,26 @@ lemma Subspace_IsClosed {d : ℕ+} (p : Subspace ℝ (EuclideanSpace ℝ (Fin d)
   apply orthogonalProjection_mem_subspace_eq_self
   done
 
+lemma Submodule.mem_orthogonal_Basis {𝕜 : Type u_1} {E : Type u_2} {ι : Type u_3} [IsROrC 𝕜] 
+  [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] (K : Submodule 𝕜 E) (b : Basis ι 𝕜 K) (v : E) :
+  v ∈ Kᗮ ↔ ∀ i : ι, inner ↑(b i) v = (0:𝕜) := by
+  rw [Submodule.mem_orthogonal]
+  constructor
+  · 
+    intro h i
+    apply h 
+    exact Submodule.coe_mem (b i)
+  · 
+    intro h x hx
+    rw [Basis.mem_submodule_iff b] at hx
+    rcases hx with ⟨ a, rfl ⟩
+    rw [Finsupp.sum_inner]
+    apply Finset.sum_eq_zero
+    intro i _
+    simp only [smul_eq_mul, mul_eq_zero, map_eq_zero]
+    right
+    exact h i
+  done
 
 variable {E P : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] [PseudoMetricSpace P] [NormedAddTorsor E P] [FiniteDimensional ℝ E]
 open Pointwise
@@ -60,27 +80,20 @@ lemma Submodule_cutspace (p : Subspace ℝ E) : ∃ H_ : Set (Halfspace E), H_.F
     rintro hx Hi_ ⟨ H, ⟨ _, ⟨ v, ⟨ i, hi ⟩, rfl ⟩ , hHHalfpair ⟩, rfl ⟩
     rw [Halfspace_mem]
     revert hHHalfpair H
-    simp only [Function.comp_apply, ne_eq] at hi 
     rw [← mem_cutSpace,  orthoHyperplane_mem, ← hi, Submodule.inner_left_of_mem_orthogonal hx]
     exact Submodule.coe_mem ((FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i)
   · -- 2.
     rintro hHi_
     rw [Submodule_cut, orthoHyperplanes_mem] at hHi_
-    rw [SetLike.mem_coe, ← Submodule.orthogonal_orthogonal p, Submodule.mem_orthogonal]
+    rw [SetLike.mem_coe, ← Submodule.orthogonal_orthogonal p]
     intro y hy
     have : ∀ i, inner (Subtype.val (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ } i)) x = (0:ℝ) := by
       intro i
       let v : E := (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i        
       let v' : { x // x ≠ 0 } := ⟨ v, fun hv => (Basis.ne_zero (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i) (Submodule.coe_eq_zero.mp hv) ⟩
       exact hHi_ v' ⟨ i, rfl ⟩
-    
-    rw [Basis.mem_submodule_iff' (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ })] at hy
-    rcases hy with ⟨ a, rfl ⟩
-    rw [sum_inner]
-    apply Finset.sum_eq_zero
-    intro i _
-    rw [real_inner_comm, inner_smul_right, real_inner_comm, this i, mul_zero]
-    done
+    rw [← Submodule.mem_orthogonal_Basis] at this
+    exact this _ hy
   done
 
 
