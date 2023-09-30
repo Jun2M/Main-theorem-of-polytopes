@@ -1,4 +1,5 @@
 import Mathlib.Analysis.Convex.Intrinsic
+import Mathlib.Analysis.InnerProductSpace.Orthogonal
 
 
 open Pointwise
@@ -123,3 +124,25 @@ def AffineIsometryEquiv.VSubconst (𝕜 : Type) {E P : Type} [NormedField 𝕜] 
 
 @[simp]
 lemma AffineIsometryEquiv.coe_VSubconst (𝕜 : Type) {E P : Type} [NormedField 𝕜] [NormedAddCommGroup E] [NormedSpace 𝕜 E] [PseudoMetricSpace P] [NormedAddTorsor E P] (x : P) : ↑(AffineIsometryEquiv.VSubconst 𝕜 x) = (· -ᵥ x) := rfl
+
+
+lemma Submodule.mem_orthogonal_Basis {𝕜 : Type u_1} {E : Type u_2} {ι : Type u_3} [IsROrC 𝕜] 
+  [NormedAddCommGroup E] [InnerProductSpace 𝕜 E] (K : Submodule 𝕜 E) (b : Basis ι 𝕜 K) (v : E) :
+  v ∈ Kᗮ ↔ ∀ i : ι, inner ↑(b i) v = (0:𝕜) := by
+  rw [Submodule.mem_orthogonal]
+  constructor
+  · 
+    intro h i
+    apply h 
+    exact Submodule.coe_mem (b i)
+  · 
+    intro h x hx
+    rw [Basis.mem_submodule_iff b] at hx
+    rcases hx with ⟨ a, rfl ⟩
+    rw [Finsupp.sum_inner]
+    apply Finset.sum_eq_zero
+    intro i _
+    simp only [smul_eq_mul, mul_eq_zero, map_eq_zero]
+    right
+    exact h i
+  done

@@ -1,4 +1,3 @@
-import Pre
 import Hyperplane
 import Mathlib.Analysis.Convex.KreinMilman
 
@@ -322,3 +321,41 @@ lemma orthoHyperplanes_mem (X : Set {x : E // x ≠ 0}) : ∀ (y : E), y ∈ cut
     exact h _ hx
   done
 
+
+def Submodule_cut [FiniteDimensional ℝ E] (p : Subspace ℝ E) : Set (Halfspace E) := 
+  ⋃₀ (orthoHyperplane '' (Subtype.val ⁻¹' (Set.range (Subtype.val ∘ FiniteDimensional.finBasis ℝ pᗮ))))
+
+
+lemma Submodule_cut_finite [FiniteDimensional ℝ E] (p : Subspace ℝ E) : (Submodule_cut p).Finite := by
+  apply Set.Finite.sUnion ?_ (fun t ht => by
+    rcases ht with ⟨ x, _, rfl ⟩
+    exact orthoHyperplane.Finite _)
+  apply Set.Finite.image
+  apply Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _)
+  apply Set.finite_range
+  done
+
+lemma Submodule_cutspace [FiniteDimensional ℝ E] (p : Subspace ℝ E) : ∃ H_ : Set (Halfspace E), H_.Finite ∧ ↑p = cutSpace H_ := by
+  use Submodule_cut p
+  use Submodule_cut_finite p
+  ext x
+  constructor
+  · -- 1.
+    rintro hx Hi_ ⟨ H, ⟨ _, ⟨ v, ⟨ i, hi ⟩, rfl ⟩ , hHHalfpair ⟩, rfl ⟩
+    rw [Halfspace_mem]
+    revert hHHalfpair H
+    rw [← mem_cutSpace,  orthoHyperplane_mem, ← hi, Submodule.inner_left_of_mem_orthogonal hx]
+    exact Submodule.coe_mem ((FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i)
+  · -- 2.
+    rintro hHi_
+    rw [Submodule_cut, orthoHyperplanes_mem] at hHi_
+    rw [SetLike.mem_coe, ← Submodule.orthogonal_orthogonal p]
+    intro y hy
+    have : ∀ i, inner (Subtype.val (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ } i)) x = (0:ℝ) := by
+      intro i
+      let v : E := (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i        
+      let v' : { x // x ≠ 0 } := ⟨ v, fun hv => (Basis.ne_zero (FiniteDimensional.finBasis ℝ { x // x ∈ pᗮ }) i) (Submodule.coe_eq_zero.mp hv) ⟩
+      exact hHi_ v' ⟨ i, rfl ⟩
+    rw [← Submodule.mem_orthogonal_Basis] at this
+    exact this _ hy
+  done
