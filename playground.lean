@@ -19,6 +19,13 @@ def Set.Subtype {α : Type} {property : α → Prop} (S : Set α) (hS : ∀ s �
     exact ⟨ x, hx, rfl ⟩
   done
 
+lemma AffineMap.preimage_convexHull {𝕜 : Type u_1} {E : Type u_2} {F : Type u_3} [OrderedRing 𝕜] 
+  [AddCommGroup E] [AddCommGroup F] [Module 𝕜 E] [Module 𝕜 F] {s : Set F} {f : E →ᵃ[𝕜] F} (hf : f.toFun.Injective) (hs : s ⊆ Set.range f):
+  ↑f ⁻¹' (convexHull 𝕜) s = (convexHull 𝕜) (↑f ⁻¹' s) := by
+  have h1 := Set.image_preimage_eq_of_subset hs
+  ext x
+  rw [Set.mem_preimage, ← Function.Injective.mem_set_image hf, AffineMap.toFun_eq_coe, AffineMap.image_convexHull, h1]
+  done
 
 variable {E P : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E] [PseudoMetricSpace P] [NormedAddTorsor E P] [FiniteDimensional ℝ E]
 open Pointwise
@@ -40,7 +47,6 @@ lemma InDown_eq_DownIn {p : AffineSubspace ℝ P} [Nonempty { x // x ∈ p }] {S
   (@Subtype.val E fun x => x ∈ p.direction) ⁻¹' (S -ᵥ ({x.1} : Set P)) := by
   ext y
   rw [AffineIsometryEquiv.coe_VSubconst, Set.vsub_singleton, Set.mem_image, Set.mem_preimage, Set.mem_image]
-  -- simp only [Set.mem_preimage, Subtype.exists, exists_and_left]
   constructor
   · 
     rintro ⟨ v, h, rfl ⟩
@@ -57,7 +63,19 @@ lemma InDown_eq_DownIn {p : AffineSubspace ℝ P} [Nonempty { x // x ∈ p }] {S
     exact Subtype.val_injective h1
   done
 
-theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)): 
+
+lemma Nonempty_iff_Nonempty_interior_in_direction {S : Set E}{s : E} (hs : s ∈ S) (hS : Nonempty S) :
+    (interior ((@AffineIsometryEquiv.VSubconst ℝ (affineSpan ℝ S).direction (affineSpan ℝ S) _ _ _ _ (AffineSubspace.toNormedAddTorsor (affineSpan ℝ (S))) ⟨ s, by apply subset_affineSpan; exact hs ⟩ ) '' 
+      ((@Subtype.val E fun x => x ∈ (affineSpan ℝ S)) ⁻¹' ((convexHull ℝ) S)))).Nonempty := by 
+  rw [Set.nonempty_coe_sort, ← @convexHull_nonempty_iff ℝ, ← intrinsicInterior_nonempty (convex_convexHull ℝ S), 
+    intrinsicInterior, Set.nonempty_image_iff, affineSpan_convexHull] at hS
+  rw [ ← AffineIsometryEquiv.coe_toHomeomorph, ← Homeomorph.image_interior, Set.nonempty_image_iff]
+  exact hS
+
+theorem Set.vsub_eq_sub {G : Type} [AddGroup G] (g1 g2 : Set G) : g1 -ᵥ g2 = g1 - g2 :=
+  rfl
+
+theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] [Nontrivial E] : 
   (∀ (S : Set E) (hS : S.Finite), 
     ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), 
     Hpolytope hH_ = Vpolytope hS) ∧ 
@@ -72,32 +90,43 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)
     3. Any hyperplane is an intersection of two Halfspaces
     4. Take union of the set of Halfspaces for Hpolytope in the affineSpan and for the affineSpan
     -/
-    cases' em (S.Nonempty) with hSnonempty hSempty 
+    cases' em (S.Nontrivial) with hSnontrivial hStrivial
     · -- S is nonempty 
-      have := hSnonempty
-      rcases this with ⟨ s, hs ⟩
-      have hsaff : s ∈ affineSpan ℝ ((convexHull ℝ) S) := by
-        rw [affineSpan_convexHull]
-        apply subset_affineSpan
-        exact hs
-      
-      let SpanS := affineSpan ℝ ((convexHull ℝ) S)
+      have hSnonempty := Set.Nontrivial.nonempty hSnontrivial
+      rcases (Set.Nontrivial.nonempty hSnontrivial) with ⟨ s, hs ⟩
+      have hsaff : s ∈ affineSpan ℝ S := by apply subset_affineSpan; exact hs
+      let SpanS := affineSpan ℝ S
       let s' : SpanS := ⟨ s, hsaff ⟩
-      have haffn0 : Nonempty { x // x ∈ SpanS } := Set.Nonempty.to_subtype <| Set.nonempty_of_mem hsaff
 
-      rw [← @convexHull_nonempty_iff ℝ, ← intrinsicInterior_nonempty (convex_convexHull ℝ S), 
-        intrinsicInterior, Set.nonempty_image_iff, 
-        ← @Set.nonempty_image_iff _ _ ((AffineIsometryEquiv.VSubconst ℝ s').toHomeomorph ) _] at hSnonempty
-      rcases hSnonempty with ⟨ x, hx ⟩
-      rw [Homeomorph.image_interior, AffineIsometryEquiv.coe_toHomeomorph] at hx         
-      let A := (AffineIsometryEquiv.VSubconst ℝ s') '' ((@Subtype.val E fun x => x ∈ ↑SpanS) ⁻¹' (convexHull ℝ) S)
-      change x ∈ interior A at hx
+      have := Set.nonempty_coe_sort.mpr hSnonempty
+      rcases (Nonempty_iff_Nonempty_interior_in_direction hs this) with ⟨ x, hx ⟩
 
+      have : Nontrivial SpanS.direction := by
+        rcases Set.Subtype S (subset_affineSpan ℝ S) with ⟨ S', hS1, hS2 ⟩
+        apply @Set.nontrivial_of_nontrivial _ ((AffineIsometryEquiv.VSubconst ℝ s') '' S')
+        apply Set.Nontrivial.image _ (AffineIsometryEquiv.injective _)
+        rw [← hS1] at hSnontrivial
+        exact Set.nontrivial_of_image _ _ hSnontrivial
+        done
+      
+      have : ∃ S', S'.Finite ∧ convexHull ℝ S' = (AffineIsometryEquiv.VSubconst ℝ s') '' ((@Subtype.val E fun x => x ∈ SpanS) ⁻¹' ((convexHull ℝ) S : Set E)) := by
+        rw [InDown_eq_DownIn, ← @convexHull_singleton ℝ, Set.vsub_eq_sub, ← convexHull_sub, 
+          ← Submodule.coeSubtype]
+        refine ⟨ Subtype.val ⁻¹' (S - {s}), ?_, ?_ ⟩
+        · 
+          apply Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _)
+          rw [Set.sub_singleton]
+          exact Set.Finite.image _ hS
+        · 
+          rw [← Submodule.coeSubtype, ← LinearMap.coe_toAffineMap, ← AffineMap.preimage_convexHull]
+          all_goals (try rw [AffineMap.toFun_eq_coe])
+          all_goals rw [LinearMap.coe_toAffineMap, Submodule.coeSubtype]
+          exact Subtype.val_injective
 
-      -- hope
-      have : ∃ S', S'.Finite ∧ convexHull ℝ S' = A := by
-        
-        sorry
+          rw [Subtype.range_coe_subtype]
+          change S - {s} ⊆ (affineSpan ℝ S).direction
+          rw [AffineSubspace.coe_direction_eq_vsub_set (Set.Nonempty.mono (subset_affineSpan ℝ S) hSnonempty), Set.vsub_eq_sub]
+          exact Set.sub_subset_sub (subset_affineSpan ℝ S) (subset_trans (Set.singleton_subset_iff.mpr hs) (subset_affineSpan ℝ S))
         done
       
 
@@ -149,7 +178,8 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)
         refine ⟨ v - s, ?_, by simp only [sub_add_cancel] ⟩ 
         rw [Set.image_image]
         
-        have hvaff : v ∈ affineSpan ℝ ((convexHull ℝ) S) := by
+        have hvaff : v ∈ affineSpan ℝ S := by
+          rw [← affineSpan_convexHull]
           apply subset_affineSpan
           exact hv
         let v' : SpanS := ⟨ v, hvaff ⟩
@@ -157,15 +187,27 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] (h : ∃ x, x ≠ (0:E)
         refine ⟨ v', by rw [Set.mem_preimage]; exact hv, ?_ ⟩
         simp only [Set.le_eq_subset, AffineIsometryEquiv.coe_VSubconst, AffineSubspace.coe_vsub, vsub_eq_sub]
       
-      -- carrying Nonempty around
-      sorry
-      sorry
-      
+      -- In case Span of S has dim = 0
+      all_goals (apply Set.Nonempty.image)
+      all_goals (try (change Set.Nonempty (Halfspace.val (AffineSubspace.direction SpanS) '' H_''1)))
+      all_goals (try apply Set.Nonempty.image)
+      all_goals (by_contra h)
+      all_goals (rw [Set.not_nonempty_iff_eq_empty] at h)
+      all_goals (rw [Hpolytope, h, Set.image_empty, Set.sInter_empty] at hHV)
+      all_goals (exact IsCompact.ne_univ (Compact_Vpolytope hS'Fin) hHV.symm)
       done
     · -- S is empty
-      rw [← @convexHull_nonempty_iff ℝ, Set.not_nonempty_iff_eq_empty] at hSempty
-      rw [Vpolytope, hSempty]
-      exact empty_Hpolytope h
+      rw [Set.not_nontrivial_iff] at hStrivial
+      cases' Set.Subsingleton.eq_empty_or_singleton hStrivial with hSempty hSsingleton
+      · 
+        rw [Vpolytope, hSempty, convexHull_empty]
+        exact empty_Hpolytope
+      ·
+        rcases hSsingleton with ⟨ x, hx ⟩
+        rcases @origin_Hpolytope E _ _ _ _ with ⟨ H_, hH_Fin, hH_ ⟩
+        refine ⟨ Halfspace_translation x '' H_, Set.Finite.image (Halfspace_translation x) hH_Fin, ?_ ⟩
+        rw [Vpolytope, hx, convexHull_singleton, Hpolytope_translation hH_Fin, hH_, Set.singleton_add_singleton, zero_add]
+        done 
   · -- 2.
     exact Vpolytope_of_Hpolytope
   done

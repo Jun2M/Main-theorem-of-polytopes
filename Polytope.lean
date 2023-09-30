@@ -59,7 +59,8 @@ lemma mem_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) (x : E) :
     exact h
     done
     
-lemma empty_Hpolytope (h : ∃ x : E, x ≠ 0) : ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = ∅ := by
+lemma empty_Hpolytope [Nontrivial E] : ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = ∅ := by
+  have h := exists_ne (0:E)
   rcases h with ⟨ x, hx ⟩
   let xhat := (norm x)⁻¹ • x
   let fval : NormedSpace.Dual ℝ E := InnerProductSpace.toDualMap ℝ _ xhat
@@ -81,6 +82,33 @@ lemma empty_Hpolytope (h : ∃ x : E, x ≠ 0) : ∃ (H_ : Set (Halfspace E)) (h
   rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
   change f.1 x ≤ -1 at h1
   linarith
+  done
+
+lemma origin_Hpolytope [FiniteDimensional ℝ E] : ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = ({0} : Set E) := by
+  refine ⟨ ⋃₀ (orthoHyperplane '' (Subtype.val ⁻¹' Set.range (FiniteDimensional.finBasis ℝ E))), ?_, ?_ ⟩
+  · -- 1.
+    apply Set.Finite.sUnion ?_ (fun t ht => by
+      rcases ht with ⟨ x, _, rfl ⟩
+      exact orthoHyperplane.Finite _)
+    apply Set.Finite.image
+    apply Set.Finite.preimage (Set.injOn_of_injective Subtype.val_injective _)
+    exact Set.finite_range _
+  · -- 2.
+    ext x
+    rw [Set.mem_singleton_iff] 
+    change x ∈ cutSpace ( (⋃₀ (orthoHyperplane '' (Subtype.val ⁻¹' Set.range ↑(FiniteDimensional.finBasis ℝ E))))) ↔ x = 0
+    rw [orthoHyperplanes_mem]
+    constructor
+    · -- 1.
+      intro h
+      apply InnerProductSpace.ext_inner_left_basis (FiniteDimensional.finBasis ℝ E)
+      intro i
+      rw [inner_zero_right]
+      simp only [Set.mem_preimage, Set.mem_range, forall_exists_index, Subtype.forall] at h  
+      exact h (FiniteDimensional.finBasis ℝ E i) (Basis.ne_zero (FiniteDimensional.finBasis ℝ E) i) i rfl
+    · -- 2.
+      rintro rfl x _
+      rw [inner_zero_right]
   done
 
 lemma hyperplane_Hpolytope : ∀ (f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}) (c : ℝ), 
