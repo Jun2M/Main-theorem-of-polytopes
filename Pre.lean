@@ -4,6 +4,22 @@ import Mathlib.Analysis.InnerProductSpace.Orthogonal
 
 open Pointwise
 
+def Set.Subtype {α : Type*} {property : α → Prop} (S : Set α) (hS : ∀ s ∈ S, property s) : 
+  ∃ S' : Set {x : α // property x}, Subtype.val '' S' = S ∧ Subtype.val ⁻¹' S = S':= by
+  have : ∃ S' : Set {x : α // property x}, Subtype.val '' S' = S := CanLift.prf S hS
+  rcases this with ⟨ S', hS' ⟩
+  refine ⟨ S', hS', ?_ ⟩ 
+  ext x
+  rw [Set.mem_preimage, ← hS', Set.mem_image]
+  constructor
+  · -- 1.
+    rintro ⟨ x', hx', hxx ⟩
+    rw [Subtype.coe_inj] at hxx
+    exact hxx ▸ hx'
+  · -- 2.
+    intro hx
+    exact ⟨ x, hx, rfl ⟩
+  done
 
 lemma Set.translation.Finite {α : Type} [AddGroup α]  {S : Set α} (hS : S.Finite)  (x : α) : 
   (S + ({x} : Set α)).Finite := by 
@@ -22,6 +38,8 @@ lemma Set.mem_translation {α : Type} [AddGroup α] {S : Set α}  (x s : α) :
     intro h
     exact ⟨s - x, h, by rw [sub_add_cancel]⟩
   done
+
+theorem Set.vsub_eq_sub {G : Type} [AddGroup G] (g1 g2 : Set G) : g1 -ᵥ g2 = g1 - g2 := rfl
 
 lemma Set.sub_eq_neg_add {α : Type} [AddGroup α] (S : Set α) (x : α) : 
   S - {x} = S + {(-x)} := by
@@ -146,3 +164,30 @@ lemma Submodule.mem_orthogonal_Basis {𝕜 : Type u_1} {E : Type u_2} {ι : Type
     right
     exact h i
   done
+
+lemma AffineMap.preimage_convexHull {𝕜 : Type u_1} {E : Type u_2} {F : Type u_3} [OrderedRing 𝕜] 
+  [AddCommGroup E] [AddCommGroup F] [Module 𝕜 E] [Module 𝕜 F] {s : Set F} {f : E →ᵃ[𝕜] F} (hf : f.toFun.Injective) (hs : s ⊆ Set.range f):
+  ↑f ⁻¹' (convexHull 𝕜) s = (convexHull 𝕜) (↑f ⁻¹' s) := by
+  have h1 := Set.image_preimage_eq_of_subset hs
+  ext x
+  rw [Set.mem_preimage, ← Function.Injective.mem_set_image hf, AffineMap.toFun_eq_coe, AffineMap.image_convexHull, h1]
+  done
+
+def affineSpan_nontrivial (k : Type u_1) {V : Type u_2} {P : Type u_3} [Ring k] [AddCommGroup V] [Module k V] [AddTorsor V P] {s : Set P} (h : Nontrivial s):
+  Nontrivial (affineSpan k s) := by
+  rcases Set.Subtype s (subset_affineSpan k s) with ⟨ s', hs', _ ⟩
+  rw [Set.nontrivial_coe_sort, ← hs'] at h
+  exact Set.nontrivial_of_nontrivial <| Set.nontrivial_of_image _ _ h
+
+def AffineSubspace.direction_nontrivial_of_nontrivial (k : Type u_1) {V : Type u_2} {P : Type u_3} [Ring k] [AddCommGroup V] [Module k V] [AddTorsor V P] (Q : AffineSubspace k P):
+  Nontrivial Q → Nontrivial Q.direction := by
+  intro h
+  rcases nontrivial_iff.mp h with ⟨ p, q, hpq ⟩
+  have := AffineSubspace.toAddTorsor Q
+  exact ⟨ 0, p -ᵥ q, Ne.symm <| vsub_ne_zero.mpr hpq ⟩ 
+
+def AffineSubspace.direction_subset_subset {k : Type u_1} {V : Type u_2} {P : Type u_3} [Ring k] [AddCommGroup V] [Module k V] 
+  [AddTorsor V P] {Q : AffineSubspace k P} {S T : Set P} (hS : S ⊆ Q) (hT : T ⊆ Q) :
+  S -ᵥ T ⊆ Q.direction  := by
+  rintro x ⟨ a, b, haS, hbT, rfl ⟩
+  exact AffineSubspace.vsub_mem_direction (hS haS) (hT hbT)

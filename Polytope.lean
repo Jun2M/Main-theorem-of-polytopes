@@ -155,3 +155,38 @@ lemma inter_Hpolytope (H_1 H_2 : Set (Halfspace E)) (hH_1 : H_1.Finite) (hH_2 : 
     · -- 2.2
       exact h.2 Hi hHi 
   done
+
+lemma Vpolytope_translation {S : Set E} (hS : S.Finite) (x : E) : 
+  Vpolytope (Set.translation.Finite hS x) = (Vpolytope hS) + {x}:= by
+  rw [Vpolytope, convexHull_add, convexHull_singleton]
+  rfl
+  done
+
+lemma Hpolytope_translation {H_ : Set (Halfspace E)} (hH_ : H_.Finite) (x : E) : 
+  Hpolytope (Set.Finite.image (Halfspace_translation x) hH_) = (Hpolytope hH_) + {x}:= by
+  rw [Hpolytope, Hpolytope, Set.sInter_image, Set.sInter_image]
+  ext y
+  rw [Set.mem_iInter, Set.add_singleton]
+  simp only [Set.mem_iInter, SetLike.mem_coe, Set.image_add_right, Set.mem_preimage]
+  constructor
+  · -- 1.
+    intro h Hi_ hHi_
+    specialize h (Halfspace_translation x Hi_) (Set.mem_image_of_mem _ hHi_)
+    rw [← SetLike.mem_coe, mem_Halfspace_translation, sub_eq_add_neg] at h
+    exact h
+  · -- 2.
+    intro h Hi_ hHi_
+    specialize h (Halfspace_translation (-x) Hi_) (?_)
+    rw [Set.mem_image] at hHi_
+    rcases hHi_ with ⟨ Hi_', hHi_', rfl ⟩
+    have : Halfspace_translation (-x) (Halfspace_translation x Hi_') = Hi_':= by
+      rw [SetLike.ext_iff]
+      intro z
+      rw [← SetLike.mem_coe, ← SetLike.mem_coe, mem_Halfspace_translation, mem_Halfspace_translation, 
+        sub_neg_eq_add, add_sub_cancel]
+      done
+    rw [this]
+    assumption
+    rw [← SetLike.mem_coe, mem_Halfspace_translation, add_sub_cancel, SetLike.mem_coe] at h
+    exact h
+  done
