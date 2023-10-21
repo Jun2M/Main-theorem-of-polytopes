@@ -72,9 +72,18 @@ structure LinearProgram (d p : ℕ+) where
 
 def LinearProgram.rows {d p : ℕ+} (lp : LinearProgram d p) : Set (Fin d → ℝ) :=
   Set.range lp.constraints
+
+def LinearProgram.rows_finite {d p : ℕ+} (lp : LinearProgram d p) : Set.Finite (lp.rows) :=
+  Set.finite_range lp.constraints
   
 def LinearProgram.feasibleSet {d p : ℕ+} (lp : LinearProgram d p) : Set (EuclideanSpace ℝ (Fin d)) :=
   {x : EuclideanSpace ℝ (Fin d) | lp.constraints.mulVec x ≤ lp.constraintRhs}
+
+def LinearProgram.bundle {d p : ℕ+} (lp : LinearProgram d p) : Fin p → (EuclideanSpace ℝ (Fin d)) × ℝ :=
+  λ i => (lp.constraints i, lp.constraintRhs i)
+
+def LinearProgram.H {d p : ℕ+} (lp : LinearProgram d p) : Set (Halfspace (EuclideanSpace ℝ (Fin d))) :=
+  Set.range (λ i : Fin p => Halfspace.mk (pointDualLin (lp.constraints i)) (lp.constraintRhs i))
 
 def LinearProgram.isFeasible {d p : ℕ+} (lp : LinearProgram d p) (x : EuclideanSpace ℝ (Fin d)) : Prop :=
   x ∈ lp.feasibleSet
@@ -83,7 +92,7 @@ def LinearProgram.isOptimal {d p : ℕ+} (lp : LinearProgram d p) (x : Euclidean
   lp.isFeasible x ∧ ∀ y : EuclideanSpace ℝ (Fin d), lp.isFeasible y → lp.linearObjective y ≤ lp.linearObjective x
 
 lemma LinearProgram.feasibleSet_Hpolytope {d p : ℕ+} (lp : LinearProgram d p) : 
-  lp.feasibleSet = Hpolytope (Set.finite_range (lp.constraints : Fin d → Fin p → ℝ) : Set.Finite (Set.range lp.constraints : Set (EuclideanSpace ℝ (Fin d)))) := by
+  lp.feasibleSet = Hpolytope lp.rows_finite := by
   ext x
   rw [mem_Hpolytope]
   split

@@ -1,5 +1,6 @@
 import Mathlib.Analysis.Convex.Intrinsic
 import Mathlib.Analysis.InnerProductSpace.Orthogonal
+import Mathlib.Tactic.MoveAdd
 
 
 open Pointwise
@@ -56,11 +57,11 @@ lemma Set.neg_add_cancel_right' {α : Type} [AddGroup α] {S : Set α} (x : α) 
   simp only [sub_singleton, add_singleton, mem_image, exists_exists_and_eq_and, sub_add_cancel, exists_eq_right]
   done
 
-theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [TopologicalSpace α] :
-  (∀ t ∈ s, IsOpen t) → IsOpen (⋂₀ s) :=
-  Finite.induction_on hs (fun _ => by rw [sInter_empty]; exact isOpen_univ) fun _ _ ih h => by
-    simp only [sInter_insert, ball_insert_iff] at h ⊢
-    exact h.1.inter (ih h.2)
+-- theorem Set.Finite.isOpen_sInter {s : Set (Set α)} (hs : s.Finite) [TopologicalSpace α] :
+--   (∀ t ∈ s, IsOpen t) → IsOpen (⋂₀ s) :=
+--   Finite.induction_on hs (fun _ => by rw [sInter_empty]; exact isOpen_univ) fun _ _ ih h => by
+--     simp only [sInter_insert, ball_insert_iff] at h ⊢
+--     exact h.1.inter (ih h.2)
 
 lemma interior_eq_compl_closure_compl [TopologicalSpace α] {s : Set α} : interior s = (closure sᶜ)ᶜ := by
   rw [← compl_compl s, compl_compl sᶜ, interior_compl]

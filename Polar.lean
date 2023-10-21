@@ -178,7 +178,7 @@ lemma compact_polarDual_iff [FiniteDimensional ℝ E] {X : Set E} (hXcl : IsClos
   0 ∈ interior (polarDual X) ↔ IsCompact X := by
   cases' (em (X \ {0}).Nonempty) with hXnonempty hXempty
   · 
-    constructor <;> rw [Metric.isCompact_iff_isClosed_bounded, bounded_iff_forall_norm_le]
+    constructor <;> rw [Metric.isCompact_iff_isClosed_bounded, isBounded_iff_forall_norm_le]
     · -- 1.
       intro h
       have := @isOpen_interior _ _ (polarDual X)

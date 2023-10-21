@@ -39,52 +39,51 @@ variable [CompleteSpace E]
 instance Halfspace.SetLike : SetLike (Halfspace E) E where
   coe := Halfspace.S
   coe_injective' := by
-    intro H1 H2 h
-    cases' H1 with f1 α1
-    cases' H2 with f2 α2
+    rintro ⟨ ⟨ f1, hf1norm ⟩, α1 ⟩ ⟨ ⟨ f2, hf2norm ⟩, α2 ⟩ h
     simp only [Halfspace.S] at h
 
-    let p1 := (InnerProductSpace.toDual ℝ E).symm f1.1
-    have hp1norm : norm p1 = 1 := (LinearIsometryEquiv.norm_map (InnerProductSpace.toDual ℝ _).symm f1.1) ▸ f1.2
-    have hf1 : f1.1 = (InnerProductSpace.toDual ℝ E) p1 := by simp
-    have hf1p1 : f1.1 p1 = 1 := by rw [hf1, InnerProductSpace.toDual_apply, real_inner_self_eq_norm_sq, hp1norm, sq, one_mul]
-
+    let p1 := (InnerProductSpace.toDual ℝ E).symm f1
+    have hp1norm : norm p1 = 1 := (LinearIsometryEquiv.norm_map (InnerProductSpace.toDual ℝ _).symm f1) ▸ hf1norm
+    have hf1 : f1 = (InnerProductSpace.toDual ℝ E) p1 := by simp only [ContinuousLinearMap.strongUniformity_topology_eq,
+      LinearIsometryEquiv.apply_symm_apply]
+    have hf1p1 : f1 p1 = 1 := by rw [hf1, InnerProductSpace.toDual_apply, real_inner_self_eq_norm_sq, hp1norm, sq, one_mul]
+    
     have hfeq : f1 = f2 := by
-      ext
-      apply LinearIsometryEquiv.injective (InnerProductSpace.toDual ℝ E).symm
+      let p2 := (InnerProductSpace.toDual ℝ E).symm f2
+      have hp2norm : norm p2 = 1 := (LinearIsometryEquiv.norm_map (InnerProductSpace.toDual ℝ _).symm f2) ▸ hf2norm
+      have hf2 : f2 = (InnerProductSpace.toDual ℝ E) p2 := by simp only [ContinuousLinearMap.strongUniformity_topology_eq,
+        LinearIsometryEquiv.apply_symm_apply]
+
+      rw [hf1, hf2] ; clear hf1norm hf2norm hf1p1
+      apply LinearIsometryEquiv.congr_arg
       contrapose! h
 
-      let p2 := (InnerProductSpace.toDual ℝ E).symm f2.1
-      have hp2norm : norm p2 = 1 := (LinearIsometryEquiv.norm_map (InnerProductSpace.toDual ℝ _).symm f2.1) ▸ f2.2
-      have hf2 : f2.1 = (InnerProductSpace.toDual ℝ E) p2 := by simp
-
-      change p1 ≠ p2 at h
       have hinnerlt1:= (inner_lt_one_iff_real_of_norm_one hp1norm hp2norm).mpr h
       let v := p1 - p2
       let v' := (norm v)⁻¹ • v
       have hvnonzero : v ≠ 0 := sub_ne_zero_of_ne h
       
-      have hv'1 : 0 < f1.1 v' := by
+      have hv'1 : 0 < f1 v' := by
         rw [hf1, InnerProductSpace.toDual_apply, real_inner_smul_right, inner_sub_right, real_inner_self_eq_norm_sq, 
           hp1norm, sq, one_mul, mul_pos_iff]
         left
         exact ⟨ inv_pos.mpr <| norm_pos_iff.mpr hvnonzero, by linarith ⟩ 
-      have hv'2 : f2.1 v' < 0 := by
+      have hv'2 : f2 v' < 0 := by
         rw [hf2, InnerProductSpace.toDual_apply, real_inner_smul_right, inner_sub_right, real_inner_self_eq_norm_sq, 
           hp2norm, sq, one_mul, mul_neg_iff]
         left
         exact ⟨ inv_pos.mpr <| norm_pos_iff.mpr hvnonzero, sub_neg.mpr ((real_inner_comm p1 p2) ▸ hinnerlt1) ⟩
       
-      have hv'1out : ∃ M1 : ℝ, ∀ m > M1, (m • v') ∉ f1.1 ⁻¹' {x | x ≤ α1} := by
-        use α1 / f1.1 v'
+      have hv'1out : ∃ M1 : ℝ, ∀ m > M1, (m • v') ∉ f1 ⁻¹' {x | x ≤ α1} := by
+        use α1 / f1 v'
         intro m hm hmem
         rw [Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul, ← le_div_iff hv'1] at hmem
         exact not_lt_of_le hmem hm
-      have hv'2in : ∃ M2 : ℝ, ∀ m > M2, (m • v') ∈ f2.1 ⁻¹' {x | x ≤ α2} := by
-        use α2 / f2.1 v'
+      have hv'2in : ∃ M2 : ℝ, ∀ m > M2, (m • v') ∈ f2 ⁻¹' {x | x ≤ α2} := by
+        use α2 / f2 v'
         intro m hm
         rw [Set.mem_preimage, Set.mem_setOf, ContinuousLinearMap.map_smul, smul_eq_mul] 
-        have : m * f2.1 v' ≤ α2 / f2.1 v' * f2.1 v' := by
+        have : m * f2 v' ≤ α2 / f2 v' * f2 v' := by
           rw [← neg_le_neg_iff, ← mul_neg, ← mul_neg, mul_le_mul_right (neg_pos_of_neg hv'2)]
           exact le_of_lt hm
 
@@ -210,7 +209,7 @@ lemma Hyperplane_affineClosed (Hi_ : Halfspace E) :
     → ∀ a : Fin n → ℝ, Finset.univ.sum a = 1 →  
     Finset.affineCombination ℝ Finset.univ s a ∈ {x : E | Hi_.f.1 x = Hi_.α } := by
   intro s hs a ha
-  rw [Finset.affineCombination_eq_linear_combination _ _ _ ha, Set.mem_setOf, ContinuousLinearMap.map_sum]
+  rw [Finset.affineCombination_eq_linear_combination _ _ _ ha, Set.mem_setOf, map_sum]
   have hg : (fun i => Hi_.f.1 (a i • s i)) = fun i => a i * Hi_.α := by
     ext i
     rw [Set.range_subset_iff] at hs
