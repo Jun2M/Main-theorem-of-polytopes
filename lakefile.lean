@@ -25,6 +25,10 @@ lean_lib «pre» {
 }
 
 @[default_target]
+lean_lib «src» {
+}
+
+@[default_target]
 lean_exe «Main» {
   root := `Main
 }
