@@ -100,6 +100,7 @@ lemma hxSegBallInterSeg : ∀ (x1 x2 : E) (ε : ℝ), x ∈ openSegment ℝ x1 x
       exact hε
     done
   · -- 2. the smaller segment is not a singleton
+    
     push_neg
     intro h1
     rcases (em (x1 = x)) with (rfl | _) <;> norm_num <;> intro h <;> rw [sub_eq_zero] at h <;>
