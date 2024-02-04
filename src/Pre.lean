@@ -177,3 +177,24 @@ def AffineSubspace.direction_subset_subset {k : Type u_1} {V : Type u_2} {P : Ty
   S -ᵥ T ⊆ Q.direction  := by
   rintro x ⟨ a, b, haS, hbT, rfl ⟩
   exact AffineSubspace.vsub_mem_direction (hS b) (hT hbT)
+
+instance InstSetFiniteimage {α : Type} {β : Type} {f : α → β} {s : Set α} [h : Fact s.Finite] :
+  Fact (f '' s).Finite  := by
+  exact Fact.mk <|Set.Finite.image f Fact.out
+
+instance InstSetFinitePreimageVal {α : Type} {p : α → Prop} {s : Set α} [h : Fact s.Finite] :
+  Fact (((↑): Subtype p → α) ⁻¹' s).Finite  := by
+  exact Fact.mk <|Set.Finite.preimage Set.injOn_subtype_val Fact.out
+
+instance InstSetFiniteUnion {α : Type} {s1 s2 : Set α} [Fact s1.Finite] [Fact s2.Finite] :
+  Fact (s1 ∪ s2).Finite := by
+  exact Fact.mk <| Set.Finite.union (Fact.out : s1.Finite) (Fact.out : s2.Finite)
+
+instance InstSetFiniteDiff {α : Type} {s1 s2 : Set α} [Fact s1.Finite] :
+  Fact (s1 \ s2).Finite := by
+  exact Fact.mk <| Set.Finite.diff (Fact.out : s1.Finite) s2
+
+-- Set.translation.Finite
+instance InstSetFiniteAddSingleton {α : Type} [AddGroup α] {S : Set α} [Fact S.Finite] (x : α) :
+  Fact (S + ({x} : Set α)).Finite := by
+  exact Fact.mk <| Set.translation.Finite Fact.out x

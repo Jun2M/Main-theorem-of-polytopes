@@ -8,7 +8,7 @@ open Pointwise
 
 -- Type for halfspaces of E
 -- For completeness, it is define with a linear map with norm 1 and a real number bound
-structure Halfspace (E : Type) [NormedAddCommGroup E] [InnerProductSpace ℝ E] where
+structure PolarFunctional (E : Type) [NormedAddCommGroup E] [InnerProductSpace ℝ E] where
   f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}
   α : ℝ
 
@@ -32,17 +32,43 @@ lemma unitSphereDual_surj : ∀ f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}
   simp only [norm_zero, zero_ne_one] at this
   done
 
-def Halfspace.S (H_ : Halfspace E) : Set E := H_.f.1 ⁻¹' {x | x ≤ H_.α}
+namespace PolarFunctional
+
+def hyperplane (H : PolarFunctional E) : Set E := H.f.1 ⁻¹' {H.α}
+
+lemma hyperplane_mem_iff (H : PolarFunctional E) :
+  ∀ x, x ∈ H.hyperplane ↔ H.f.1 x = H.α := by
+  intro x
+  rw [hyperplane, Set.mem_preimage, Set.mem_singleton_iff]
+  done
+
+lemma hyperplane_convex (H : PolarFunctional E) :
+  Convex ℝ H.hyperplane := by
+  exact @convex_hyperplane ℝ E ℝ _ _ _ _ _ _ H.f.1 (LinearMap.isLinear H.f.1) H.α
+  done
+
+lemma hyperplane_affineClosed (H : PolarFunctional E) :
+  ∀ s : Fin n → E, Set.range s ⊆ H.hyperplane
+    → ∀ a : Fin n → ℝ, Finset.univ.sum a = 1 →
+    Finset.affineCombination ℝ Finset.univ s a ∈ H.hyperplane := by
+  intro s hs a ha
+  simp_rw [Set.range_subset_iff, hyperplane_mem_iff] at hs
+  rw [Finset.affineCombination_eq_linear_combination _ _ _ ha, hyperplane_mem_iff, map_sum]
+  simp_rw [map_smul, hs, smul_eq_mul, ← Finset.sum_mul, ha, one_mul]
+  done
+
+
+
+
+def le_halfspace (H : PolarFunctional E) : Set E := H.f.1 ⁻¹' {x | x ≤ H.α}
 
 variable [CompleteSpace E]
 
-instance Halfspace.SetLike : SetLike (Halfspace E) E where
-  coe := Halfspace.S
-  coe_injective' := by
+theorem le_halfspace_inj : Function.Injective (@le_halfspace E _ _) := by
     intro H1 H2 h
     cases' H1 with f1 α1
     cases' H2 with f2 α2
-    simp only [Halfspace.S] at h
+    simp only [le_halfspace] at h
 
     let p1 := (InnerProductSpace.toDual ℝ E).symm f1.1
     have hp1norm : norm p1 = 1 := (LinearIsometryEquiv.norm_map (InnerProductSpace.toDual ℝ _).symm f1.1) ▸ f1.2
@@ -135,250 +161,111 @@ instance Halfspace.SetLike : SetLike (Halfspace E) E where
       exact ⟨ le_refl _, not_le_of_gt <| lt_of_le_of_ne hmax2 h ⟩
     done
 
-def Halfspace.h (H_ : Halfspace E) : ↑H_ = H_.f.1 ⁻¹' {x |  x ≤ H_.α} := rfl
+lemma le_halfspace_eq_iff (H1 H2 : PolarFunctional E) :
+  H1.le_halfspace = H2.le_halfspace ↔ H1 = H2 := by
+  exact ⟨ λ h => le_halfspace_inj h, λ h => h ▸ rfl ⟩
 
-lemma Halfspace_mem (H_ : Halfspace E) : ∀ x, x ∈ (SetLike.coe H_) ↔ H_.f.1 x ≤ H_.α := by
+lemma le_halfspace_def (H : PolarFunctional E) : H.le_halfspace = H.f.1 ⁻¹' {x |  x ≤ H.α} := rfl
+
+lemma le_halfspace_mem_iff (H : PolarFunctional E) : ∀ x, x ∈ H.le_halfspace  ↔ H.f.1 x ≤ H.α := by
   intro x
-  rw [H_.h]
+  rw [H.le_halfspace_def]
   rfl
 
-lemma Halfspace_convex (H_ : Halfspace E) : Convex ℝ (SetLike.coe H_) := by
-  rw [H_.h]
-  exact convex_halfspace_le (LinearMap.isLinear H_.f.1.1) H_.α
+lemma le_halfspace_convex (H : PolarFunctional E) : Convex ℝ (H.le_halfspace) := by
+  rw [H.le_halfspace_def]
+  exact convex_halfspace_le (LinearMap.isLinear H.f.1.1) H.α
 
-lemma Halfspace_closed (H_ : Halfspace E) : IsClosed (SetLike.coe H_) := by
-  rw [H_.h]
-  exact IsClosed.preimage (H_.f.1.cont) isClosed_Iic
+lemma le_halfspace_closed (H : PolarFunctional E) : IsClosed (H.le_halfspace) := by
+  rw [H.le_halfspace_def]
+  exact IsClosed.preimage (H.f.1.cont) isClosed_Iic
 
-lemma Halfspace_span (H_ : Halfspace E) : affineSpan ℝ (SetLike.coe H_) = ⊤ := by
+lemma le_halfspace_span_top (H : PolarFunctional E) : affineSpan ℝ (H.le_halfspace) = ⊤ := by
   -- affine span of a ball(simplex, in general) is entire
   apply affineSpan_eq_top_of_nonempty_interior
-  apply Set.Nonempty.mono (?_ : H_.f.1 ⁻¹' (Metric.ball (H_.α -1) (1/2)) ⊆ (interior ((convexHull ℝ) H_.S)))
+  apply Set.Nonempty.mono (?_ : H.f.1 ⁻¹' (Metric.ball (H.α -1) (1/2)) ⊆ (interior ((convexHull ℝ) H.le_halfspace)))
   · -- preimage of ball is not empty as f is surjective
-    cases' unitSphereDual_surj H_.f (H_.α -1) with x hx
+    cases' unitSphereDual_surj H.f (H.α -1) with x hx
     use x
     rw [Set.mem_preimage, Metric.mem_ball, dist_sub_eq_dist_add_right, hx, sub_add_cancel, dist_self]
     linarith
     done
   -- this open set is subset of the halfspace
   rw [IsOpen.subset_interior_iff (IsOpen.preimage (?_) Metric.isOpen_ball)]
-  apply subset_trans ?_ (subset_convexHull ℝ (SetLike.coe H_))
+  apply subset_trans ?_ (subset_convexHull ℝ (H.le_halfspace))
   intro x hx
   rw [Set.mem_preimage, Real.ball_eq_Ioo, Set.mem_Ioo] at hx
-  rw [Halfspace_mem H_]
+  rw [le_halfspace_mem_iff H]
   linarith
-  exact H_.f.1.cont
+  exact H.f.1.cont
   done
 
-noncomputable def Halfspace_translation (x : E) (H_ : Halfspace E) : Halfspace E :=
-  Halfspace.mk H_.f (H_.α + (H_.f.1 x))
+noncomputable def translation (H : PolarFunctional E) (x : E) : PolarFunctional E :=
+  PolarFunctional.mk H.f (H.α + H.f.1 x)
 
-lemma Halfspace_translation.S (x : E) (H_ : Halfspace E) :
-  ↑(Halfspace_translation x H_) = (· + x) '' ↑H_ := by
+lemma translation_le_halfspace (H : PolarFunctional E) (x : E):
+  (H.translation x).le_halfspace = (· + x) '' (H.le_halfspace) := by
   ext y
-  rw [Halfspace_translation, Halfspace_mem, Set.image_add_right, Set.mem_preimage, ← sub_eq_add_neg,
-    Halfspace_mem, ContinuousLinearMap.map_sub, sub_le_iff_le_add]
+  rw [translation, le_halfspace_mem_iff, Set.image_add_right, Set.mem_preimage, ← sub_eq_add_neg,
+    le_halfspace_mem_iff, ContinuousLinearMap.map_sub, sub_le_iff_le_add]
   done
 
-lemma mem_Halfspace_translation (x : E) (H_ : Halfspace E) :
-  ∀ y, y ∈ (SetLike.coe <| Halfspace_translation x H_) ↔ y - x ∈ SetLike.coe H_ := by
+lemma translation_le_halfspace_mem_iff (H : PolarFunctional E) (x : E) :
+  ∀ y, y ∈ (H.translation x).le_halfspace ↔ y - x ∈ H.le_halfspace := by
   intro y
-  rw [Halfspace_translation.S, Set.image_add_right, Set.mem_preimage, sub_eq_add_neg]
+  rw [translation_le_halfspace, Set.image_add_right, Set.mem_preimage, sub_eq_add_neg]
   done
 
-lemma Halfspace_translation.injective (x : E) :
-  Function.Injective (Halfspace_translation x · : Halfspace E → Halfspace E ) := by
+lemma translation_inj (x : E) :
+  Function.Injective (·.translation x : PolarFunctional E → PolarFunctional E ) := by
   intro H1 H2 h
-  rw [SetLike.ext_iff]
-  intro y
-  rw [SetLike.ext_iff] at h
-  specialize h (y + x)
-  rw [← SetLike.mem_coe, ← SetLike.mem_coe, mem_Halfspace_translation, mem_Halfspace_translation, add_sub_cancel] at h
-  exact h
-
-lemma frontierHalfspace_Hyperplane {Hi_ : Halfspace E} :
-  frontier Hi_ = {x : E | Hi_.f.1 x = Hi_.α } := by
-  have := ContinuousLinearMap.frontier_preimage Hi_.f.1 (unitSphereDual_surj Hi_.f) (Set.Iic Hi_.α)
-  simp only [ne_eq, LinearMap.coe_toContinuousLinearMap', Set.nonempty_Ioi, frontier_Iic'] at this
-  change frontier ( Hi_.f.1 ⁻¹' {x | x ≤ Hi_.α}) = Hi_.f.1 ⁻¹' {Hi_.α} at this
-  rw [Hi_.h, this] ; clear this
-  unfold Set.preimage
-  simp only [ne_eq, Set.mem_singleton_iff]
-  done
-
-lemma Hyperplane_convex (Hi_ : Halfspace E) :
-  Convex ℝ {x : E | Hi_.f.1 x = Hi_.α } := by
-  exact @convex_hyperplane ℝ E ℝ _ _ _ _ _ _ Hi_.f.1 (LinearMap.isLinear Hi_.f.1) Hi_.α
-  done
-
-lemma Hyperplane_affineClosed (Hi_ : Halfspace E) :
-  ∀ s : Fin n → E, Set.range s ⊆ {x : E | Hi_.f.1 x = Hi_.α }
-    → ∀ a : Fin n → ℝ, Finset.univ.sum a = 1 →
-    Finset.affineCombination ℝ Finset.univ s a ∈ {x : E | Hi_.f.1 x = Hi_.α } := by
-  intro s hs a ha
-  rw [Finset.affineCombination_eq_linear_combination _ _ _ ha, Set.mem_setOf, map_sum]
-  have hg : (fun i => Hi_.f.1 (a i • s i)) = fun i => a i * Hi_.α := by
-    ext i
-    rw [Set.range_subset_iff] at hs
-    specialize hs i
-    rw [Set.mem_setOf] at hs
-    rw [ContinuousLinearMap.map_smulₛₗ, smul_eq_mul, RingHom.id_apply, hs]
-    done
-  rw [hg, ←Finset.sum_mul, ha, one_mul]
+  rw [← le_halfspace_eq_iff] at h ⊢
+  rwa [translation_le_halfspace, translation_le_halfspace,
+    Set.image_eq_image] at h
+  intro x y hxy
+  rwa [add_left_inj] at hxy
   done
 
 
-def cutSpace (H_ : Set (Halfspace E)) : Set E := ⋂₀ (SetLike.coe '' H_)
-
-lemma Convex_cutSpace (H_ : Set (Halfspace E)) : Convex ℝ (cutSpace H_) := by
-  apply convex_sInter
-  rintro _ ⟨ Hi_, _, rfl ⟩
-  exact Halfspace_convex Hi_
-
-lemma Closed_cutSpace (H_ : Set (Halfspace E)) : IsClosed (cutSpace H_) := by
-  apply isClosed_sInter
-  rintro _ ⟨ Hi_, _, rfl ⟩
-  change IsClosed Hi_
-  rw [Hi_.h]
-  apply IsClosed.preimage (Hi_.f.1.cont)
-  exact isClosed_Iic
-
-lemma mem_cutSpace (H_ : Set (Halfspace E)) (x : E) :
-  x ∈ cutSpace H_ ↔ ∀ Hi, Hi ∈ H_ → Hi.f.1 x ≤ Hi.α := by
-  constructor <;> intro h
-  · -- 1.
-    intro Hi HiH
-    unfold cutSpace at h
-    rw [Set.mem_sInter] at h
-    specialize h Hi ⟨ Hi, HiH, rfl ⟩
-    rw [Halfspace_mem] at h
-    exact h
-    done
-  · -- 2.
-    unfold cutSpace
-    rw [Set.mem_sInter]
-    rintro _ ⟨ Hi_, hHi_, rfl ⟩
-    specialize h Hi_ hHi_
-    rw [Halfspace_mem]
-    exact h
-    done
-
-lemma empty_cutSpace (h : ∃ x : E, x ≠ 0) : ∃ (H_ : Set (Halfspace E)), cutSpace H_ = ∅ := by
-  rcases h with ⟨ x, hx ⟩
-  let xhat := (norm x)⁻¹ • x
-  let fval : NormedSpace.Dual ℝ E := InnerProductSpace.toDualMap ℝ _ xhat
-  let f : {f : (NormedSpace.Dual ℝ E) // norm f = 1} := ⟨ fval , (by
-    change norm (innerSL ℝ ((norm x)⁻¹ • x)) = 1
-    have := @norm_smul_inv_norm ℝ _ E _ _ x hx
-    rw [IsROrC.ofReal_real_eq_id, id_eq] at this
-    rw [innerSL_apply_norm, this]
-    done
-  ) ⟩
-  refine ⟨ {Halfspace.mk f (-1), Halfspace.mk (-f) (-1)} , ?_ ⟩
-
-  ext x
-  rw [Set.mem_empty_iff_false, iff_false, mem_cutSpace]
-  intro h
-  have h1 := h (Halfspace.mk f (-1)) (by simp)
-  have h2 := h (Halfspace.mk (-f) (-1)) (by simp)
-  rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
-  change f.1 x ≤ -1 at h1
-  linarith
+lemma frontier_le_Halfspace_eq_Hyperplane {H : PolarFunctional E} :
+  frontier (H.le_halfspace) = H.hyperplane := by
+  rw [H.le_halfspace_def, ContinuousLinearMap.frontier_preimage _ (unitSphereDual_surj H.f),
+    ← Set.Iic, frontier_Iic' (Set.nonempty_Ioi)]
+  rfl
   done
 
-lemma hyperplane_cutSpace (f : {f : (NormedSpace.Dual ℝ E) // norm f = 1}) (c : ℝ) :
-  ∃ (H_ : Set (Halfspace E)), cutSpace H_ = {x | f.1 x = c} := by
-  refine ⟨ {Halfspace.mk f c, Halfspace.mk (-f) (-c)}, ?_ ⟩
-  ext x
-  rw [mem_cutSpace, Set.mem_setOf]
-  constructor
-  · -- 1.
-    intro h
-    have h1 := h (Halfspace.mk f c) (by simp)
-    have h2 := h (Halfspace.mk (-f) (-c)) (by simp)
-    rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg] at h2
-    change f.1 x ≤ c at h1
-    exact le_antisymm h1 h2
-  · -- 2.
-    intro h Hi hHi
-    simp only [Set.mem_singleton_iff, Halfspace.mk.injEq, Set.mem_insert_iff] at hHi
-    rcases hHi with rfl | rfl
-    ·
-      exact le_of_eq h
-    ·
-      rw [unitSphereDual_neg, ContinuousLinearMap.neg_apply, neg_le, neg_neg]
-      exact le_of_eq h.symm
-  done
+noncomputable def extend {p : Subspace ℝ E} [CompleteSpace p] (H' : PolarFunctional p) :
+  PolarFunctional E := by
+  choose f hf using Real.exists_extension_norm_eq p H'.f.1
+  exact ⟨ ⟨ f, hf.2 ▸ H'.f.2 ⟩, H'.α ⟩
 
-lemma inter_cutSpace (H_1 H_2 : Set (Halfspace E)) :
-  cutSpace (H_1 ∪ H_2) = cutSpace H_1 ∩ cutSpace H_2 := by
-  ext x
-  rw [mem_cutSpace, Set.mem_inter_iff, mem_cutSpace, mem_cutSpace]
-  constructor
-  · -- 1
-    intro h
-    constructor <;> intro Hi_ hH_ <;> exact h Hi_ (by simp only [Set.mem_union, hH_, true_or, or_true])
-  · -- 2
-    intro h Hi hHi
-    rw [Set.mem_union] at hHi
-    rcases hHi with hHi | hHi
-    · -- 2.1
-      exact h.1 Hi hHi
-    · -- 2.2
-      exact h.2 Hi hHi
-  done
+lemma extend_f1 {p : Subspace ℝ E} [CompleteSpace p] (H' : PolarFunctional p) :
+  ∀ (x : { x // x ∈ p }), (extend H').f.1 x = H'.f.1 x  := by
+  have := Classical.choose_spec (Real.exists_extension_norm_eq p H'.f.1)
+  exact this.1
 
+lemma extend_f2 {p : Subspace ℝ E} [CompleteSpace p] (H' : PolarFunctional p) :
+  ‖(extend H').f.1‖ = ‖H'.f.1‖ := by
+  have := Classical.choose_spec (Real.exists_extension_norm_eq p H'.f.1)
+  exact this.2
 
-lemma Halfspace.val_raw (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) :
-  ∃ H_ : Halfspace E, ((∀ (x : { x // x ∈ p }), H_.f.1 x = H_'.f.1 x) ∧ ‖H_.f.1‖ = ‖H_'.f.1‖) ∧ H_.α = H_'.α := by
-  rcases H_' with ⟨ ⟨ f, hf ⟩, C ⟩
-  choose g hg using Real.exists_extension_norm_eq p f
-  exact ⟨ ⟨ ⟨ g, hg.2 ▸ hf ⟩, C ⟩, hg, rfl ⟩
+lemma extend_α {p : Subspace ℝ E} [CompleteSpace p] (H' : PolarFunctional p) :
+  (extend H').α = H'.α := by rfl
 
-noncomputable def Halfspace.val (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) :
-  Halfspace E := by
-  choose H_ _ using (Halfspace.val_raw p H_')
-  exact H_
-
-lemma Halfspace.val_f (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) :
-  ∀ (x : { x // x ∈ p }), (Halfspace.val p H_').f.1 x = H_'.f.1 x  := by
-  unfold val
-  exact (Classical.choose_spec (Halfspace.val_raw p H_')).1.1
-
-lemma Halfspace.val_C (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) :
-  (Halfspace.val p H_').α = H_'.α := by
-  unfold val
-  exact (Classical.choose_spec (Halfspace.val_raw p H_')).2
-
-lemma Halfspace.val_eq (p : Subspace ℝ E) [CompleteSpace p] (H_' : Halfspace p) :
-  (Halfspace.val p H_' : Set E) ∩ ↑p = (Subtype.val '' (H_' : Set p)) := by
-  have := Halfspace.val_f p H_'
-  apply subset_antisymm <;> intro x <;> rw [Set.mem_inter_iff, Set.mem_image]
+lemma extend_le_halfspace_inter_subspace_eq_le_halfspace {p : Subspace ℝ E} [CompleteSpace p]
+  (H' : PolarFunctional p) :
+  (extend H').le_halfspace ∩ p = (Subtype.val '' H'.le_halfspace)  := by
+  apply subset_antisymm <;> intro x <;> rw [Set.mem_inter_iff, Set.mem_image, le_halfspace_mem_iff]
   ·
-    rintro ⟨ hxH_', hxp ⟩
+    rintro ⟨ hxH', hxp ⟩
     refine ⟨ ⟨ x, hxp ⟩, ?_, rfl ⟩
-    rw [Halfspace_mem, ← (this ⟨ x, hxp ⟩), ← Halfspace.val_C p H_']
-    exact hxH_'
+    rw [le_halfspace_mem_iff, ← (extend_f1 H' ⟨ x, hxp ⟩)]
+    exact hxH'
   ·
-    rintro ⟨ ⟨ x', hx'p ⟩, hx'H_', rfl ⟩
+    rintro ⟨ ⟨ x', hx'p ⟩, hx'H', rfl ⟩
     refine ⟨ ?_, hx'p ⟩
-    rw [Halfspace_mem, ← (this ⟨ x', hx'p ⟩), ← Halfspace.val_C p H_'] at hx'H_'
-    exact hx'H_'
+    rw [le_halfspace_mem_iff, ← (extend_f1 H' ⟨ x', hx'p ⟩)] at hx'H'
+    exact hx'H'
   done
 
-lemma Halfspace.val_eq' (p : Subspace ℝ E) [CompleteSpace p] : ∀ (H_' : Halfspace p),
-  (fun H_ => (Halfspace.val p H_ : Set E) ∩ ↑p) H_' = (fun H_ => (@Subtype.val E fun x => x ∈ p) '' (H_ : Set p)) (SetLike.coe H_') := by
-  intro H_'
-  have := Halfspace.val_f p H_'
-  apply subset_antisymm <;> intro x <;> rw [Set.mem_inter_iff, Set.mem_image]
-  ·
-    rintro ⟨ hxH_', hxp ⟩
-    refine ⟨ ⟨ x, hxp ⟩, ?_, rfl ⟩
-    rw [Halfspace_mem, ← (this ⟨ x, hxp ⟩), ← Halfspace.val_C p H_']
-    exact hxH_'
-  ·
-    rintro ⟨ ⟨ x', hx'p ⟩, hx'H_', rfl ⟩
-    refine ⟨ ?_, hx'p ⟩
-    rw [Halfspace_mem, ← (this ⟨ x', hx'p ⟩), ← Halfspace.val_C p H_'] at hx'H_'
-    exact hx'H_'
-  done
+end PolarFunctional
