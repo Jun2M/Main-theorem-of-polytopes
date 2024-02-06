@@ -194,7 +194,6 @@ instance InstSetFiniteDiff {α : Type} {s1 s2 : Set α} [Fact s1.Finite] :
   Fact (s1 \ s2).Finite := by
   exact Fact.mk <| Set.Finite.diff (Fact.out : s1.Finite) s2
 
--- Set.translation.Finite
 instance InstSetFiniteAddSingleton {α : Type} [AddGroup α] {S : Set α} [Fact S.Finite] (x : α) :
   Fact (S + ({x} : Set α)).Finite := by
   exact Fact.mk <| Set.translation.Finite Fact.out x

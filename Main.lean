@@ -330,7 +330,8 @@ lemma DualOfVpolytope_compactHpolytope [FiniteDimensional ℝ E] {S : Set E} [Fa
     Fact H_.Finite ∧ Hpolytope H_ = polarDual (Vpolytope S) from by
     rcases hHeqVdual with ⟨H_, hH_, hHeqVdual⟩
     refine ⟨ H_, hH_, hHeqVdual, ?_ ⟩
-    exact hHeqVdual ▸ (polarDual_compact_if (Closed_Vpolytope S) (Convex_Vpolytope S) hS0)
+    rwa [hHeqVdual, ← zero_mem_interior_polarDual_iff_compact (polarDual_closed _), doublePolarDual_self (Closed_Vpolytope S) (Convex_Vpolytope S)]
+    exact interior_subset hS0
 
   -- main proof
   use pointDual '' (Subtype.val ⁻¹' (S \ {0}))
@@ -396,7 +397,7 @@ lemma DualOfVpolytope_compactHpolytope [FiniteDimensional ℝ E] {S : Set E} [Fa
 
 lemma Vpolytope_of_Hpolytope {H_ : Set (PolarFunctional E)} [Fact H_.Finite]
   (hHcpt : IsCompact (Hpolytope H_)) :
-  ∃ (S : Set E), Fact S.Finite ∧ Hpolytope H_ = Vpolytope S := by
+  ∃ (S : Set E) (hS : Fact (Set.Finite S)), Hpolytope H_ = Vpolytope S := by
 
   have hExHFinite: Fact <| Set.Finite <| Set.extremePoints ℝ (Hpolytope H_) := by
     have := ExtremePointsofHpolytope H_
@@ -463,7 +464,8 @@ theorem Hpolytope_of_Vpolytope_subsingleton [FiniteDimensional ℝ E] [Nontrivia
     rcases hSsingleton with ⟨ x, hx ⟩
     rcases @origin_Hpolytope E _ _ _ _ with ⟨ H_, hH_Fin, hH_ ⟩
     refine ⟨ (·.translation x) '' H_, by infer_instance, ?_ ⟩
-    rw [Vpolytope, hx, convexHull_singleton, Hpolytope.translation_eq, hH_, Set.singleton_add_singleton, zero_add]
+    rw [Vpolytope, hx, convexHull_singleton, Hpolytope.translation_eq, hH_,
+      Set.singleton_add_singleton, zero_add]
   done
 
 lemma Hpolytope_of_Vpolytope_0interior [FiniteDimensional ℝ E] {S : Set E} [Fact S.Finite]
@@ -472,7 +474,7 @@ lemma Hpolytope_of_Vpolytope_0interior [FiniteDimensional ℝ E] {S : Set E} [Fa
   rcases DualOfVpolytope_compactHpolytope hV0 with ⟨ H_, hH_, hH_eq, hH_cpt ⟩
   rcases Vpolytope_of_Hpolytope hH_cpt with ⟨ S', hS', hS'eq ⟩
   have : 0 ∈ interior (Vpolytope S') := by
-    rw [←hS'eq, hH_eq, compact_polarDual_iff (Closed_Vpolytope S)]
+    rw [←hS'eq, hH_eq, zero_mem_interior_polarDual_iff_compact (Closed_Vpolytope S)]
     exact Compact_Vpolytope S
   rcases DualOfVpolytope_compactHpolytope this with ⟨ H_', hH_', hH_'eq, _ ⟩
   refine ⟨ H_', hH_', ?_ ⟩
@@ -521,7 +523,7 @@ variable {P : Type} [PseudoMetricSpace P] [NormedAddTorsor E P] [FiniteDimension
 
 lemma Vpolytope_of_Vpolytope_inter_cutSpace_fin {S : Set E} [Fact S.Finite]
   (hVinterior : Set.Nonempty (interior (Vpolytope S))) {H_ : Set (PolarFunctional E)} [Fact H_.Finite] :
-  ∃ (S' : Set E), Fact S'.Finite ∧ Vpolytope S' = Vpolytope S ∩ Hpolytope H_ := by
+  ∃ (S' : Set E) (hS : Fact (Set.Finite S')), Vpolytope S' = Vpolytope S ∩ Hpolytope H_ := by
   rcases Hpolytope_of_Vpolytope_interior hVinterior with ⟨ H_', hH_', hHV ⟩
   have hH_inter := Hpolytope.inter_eq H_' H_
   have : IsCompact (Vpolytope S ∩ Hpolytope H_) := IsCompact.inter_right (Compact_Vpolytope S) (Hpolytope.Closed H_)
@@ -565,7 +567,7 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] [Nontrivial E] :
   (∀ (S : Set E) [Fact S.Finite], ∃ (H_ : Set (PolarFunctional E)),
     Fact H_.Finite ∧ Hpolytope H_ = Vpolytope S) ∧
   ∀ {H_ : Set (PolarFunctional E)} [Fact H_.Finite], IsCompact (Hpolytope H_) →
-  ∃ (S : Set E), Fact S.Finite ∧ Hpolytope H_ = Vpolytope S := by
+  ∃ (S : Set E) (hS : S.Finite), Hpolytope H_ = Vpolytope S := by
   constructor
   · -- 1.
     intro S hS

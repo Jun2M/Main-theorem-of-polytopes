@@ -5,10 +5,10 @@ variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSp
 open Pointwise PolarFunctional
 
 
-def Vpolytope (S : Set E) : Set E :=
+def Vpolytope (S : Set E) [Fact (Set.Finite S)] : Set E :=
   convexHull ℝ S
 
-lemma Convex_Vpolytope (S : Set E) :
+lemma Convex_Vpolytope (S : Set E) [Fact (Set.Finite S)] :
   Convex ℝ (Vpolytope S) := convex_convexHull ℝ S
 
 lemma Closed_Vpolytope (S : Set E) [Fact (Set.Finite S)] :
@@ -17,7 +17,7 @@ lemma Closed_Vpolytope (S : Set E) [Fact (Set.Finite S)] :
 lemma Compact_Vpolytope (S : Set E) [Fact (Set.Finite S)] :
   IsCompact (Vpolytope S) := Set.Finite.isCompact_convexHull Fact.out
 
-lemma Vpolytope_translation (S : Set E) (x : E) :
+lemma Vpolytope_translation (S : Set E) (x : E) [Fact (Set.Finite S)] :
   Vpolytope (S + {x}) = (Vpolytope S) + {x}:= by
   rw [Vpolytope, convexHull_add, convexHull_singleton]
   rfl

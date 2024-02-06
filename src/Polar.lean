@@ -30,11 +30,9 @@ lemma pointDual_le_halfspace_def (p : {p : E // p ≠ 0}) :
 lemma pointDual_origin_mem (p : {p : E // p ≠ 0}) :
   (0 : E) ∈ (pointDual p).le_halfspace := by
   rw [pointDual_le_halfspace_def, map_smulₛₗ, map_inv₀, IsROrC.conj_to_real, Set.preimage_setOf_eq,
-    Set.mem_setOf_eq, map_zero, ← one_div]
-  apply le_of_lt
-  rw [div_pos_iff]
+    Set.mem_setOf_eq, map_zero, ← one_div, div_nonneg_iff]
   left
-  exact ⟨ zero_lt_one, by rw [norm_pos_iff]; exact p.2 ⟩
+  exact ⟨ zero_le_one, norm_nonneg _ ⟩
   done
 
 lemma pointDual_mem_iff (p : {p : E // p ≠ 0}) (x : E):
@@ -126,38 +124,39 @@ lemma polarDual_comm_half (X Y : Set E) :
   rw [real_inner_comm]
   specialize h x hx
   rw [polarDual_mem_iff] at h
-  specialize h y hy
-  exact h
+  exact h y hy
   done
 
 lemma polarDual_comm (X Y : Set E) :
   X ⊆ polarDual Y ↔ Y ⊆ polarDual X := by
-  constructor <;> exact fun h => polarDual_comm_half _ _ h
+  constructor <;>
+  exact fun h => polarDual_comm_half _ _ h
   done
 
 lemma doublePolarDual_self {X : Set E}
   (hXcl : IsClosed X) (hXcv : Convex ℝ X) (hX0 : 0 ∈ X) : polarDual (polarDual X) = X := by
-  apply subset_antisymm
-  · -- 1.
-    intro x hx
-    contrapose! hx
-    rw [polarDual_mem_iff]
-    push_neg
-    rcases geometric_hahn_banach_point_closed hXcv hXcl hx with ⟨ f, α, h, hX ⟩
-    use (α⁻¹) • (InnerProductSpace.toDual ℝ E).symm f
-    rw [polarDual_mem_iff']
-    have hαneg : 0 < -α := (neg_pos.mpr ((ContinuousLinearMap.map_zero f) ▸ (hX 0 hX0)))
-    constructor <;> intros <;> (try apply le_of_lt) <;> rw [real_inner_smul_left,
-      InnerProductSpace.toDual_symm_apply, ←neg_lt_neg_iff, ←neg_mul, mul_comm, neg_inv, ← division_def]
-    · -- 1.
-      rw [lt_div_iff hαneg, neg_one_mul, neg_neg]
-      exact hX (by assumption) (by assumption)
-    · -- 2.
-      rw [div_lt_iff hαneg, neg_one_mul, neg_neg]
-      exact h
-  · -- 2.
-    rw [polarDual_comm]
+  refine subset_antisymm ?_ (by rw [polarDual_comm])
+  intro x hx
+  simp only [polarDual_mem_iff] at hx
+  contrapose! hx
+  rcases geometric_hahn_banach_point_closed hXcv hXcl hx with ⟨ f, α, h, hX ⟩
+  use (α⁻¹) • (InnerProductSpace.toDual ℝ E).symm f
+
+  have hEqfxDivα : ∀ x, ⟪α⁻¹ • (LinearIsometryEquiv.symm (InnerProductSpace.toDual ℝ E)) f, x⟫_ℝ = f x / α := by
+    intro x
+    rw [real_inner_smul_left, InnerProductSpace.toDual_symm_apply]
+    ring
     done
+
+  have hαneg : α < 0 := (ContinuousLinearMap.map_zero f) ▸ (hX 0 hX0)
+
+  constructor <;> intros <;> (try apply le_of_lt)
+  · -- 1. ∀ z ∈ X, ⟪z, α⁻¹ • (LinearIsometryEquiv.symm (InnerProductSpace.toDual ℝ E)) f⟫_ℝ ≤ 1
+    rw [real_inner_comm, hEqfxDivα, div_lt_iff_of_neg hαneg, one_mul]
+    exact hX _ (by assumption)
+  · -- 2. 1 < ⟪α⁻¹ • (LinearIsometryEquiv.symm (InnerProductSpace.toDual ℝ E)) f, x⟫_ℝ
+    rw [hEqfxDivα, lt_div_iff_of_neg hαneg, one_mul]
+    exact h
   done
 
 
@@ -174,84 +173,86 @@ lemma polarDual_zero : polarDual ({0} : Set E) = Set.univ := by
   rw [this, Set.image_empty, Set.image_empty, Set.sInter_empty]
   done
 
-lemma compact_polarDual_iff [FiniteDimensional ℝ E] {X : Set E} (hXcl : IsClosed X) :
-  0 ∈ interior (polarDual X) ↔ IsCompact X := by
-  cases' (em (X \ {0}).Nonempty) with hXnonempty hXempty
-  ·
-    constructor <;> rw [Metric.isCompact_iff_isClosed_bounded, isBounded_iff_forall_norm_le]
-    · -- 1.
-      intro h
-      have : IsOpen (interior (polarDual X)) := isOpen_interior
-      rw [Metric.isOpen_iff] at this
-      rcases this 0 h with ⟨ ε, hε, hball ⟩; clear this h
-      refine ⟨ hXcl, 2/ε, fun x hx => ?_ ⟩
-
-      cases' em (x = 0) with hx0 hx0
-      ·
-        rw [hx0, norm_zero]
-        exact div_nonneg zero_le_two (le_of_lt hε)
-        done
-      let u : E := (ε/2/(norm x)) • x
-      have hnormu : ‖u‖ = ε/2 := by
-        rw [norm_smul, Real.norm_eq_abs, abs_of_pos (div_pos (half_pos hε) (norm_pos_iff.mpr hx0)),
-          div_mul_cancel _ (norm_ne_zero_iff.mpr hx0)]
-        done
-      have hu : u ∈ Metric.ball (0:E) ε := by
-        rw [Metric.mem_ball, dist_zero_right, hnormu]
-        exact half_lt_self hε
-
-      have h := interior_subset <| hball hu
-      rw [polarDual_mem_iff] at h
-      specialize h x hx
-      rw [real_inner_smul_right, real_inner_self_eq_norm_mul_norm, ←mul_assoc,
-        div_mul_cancel _ (norm_ne_zero_iff.mpr hx0), mul_comm, ← div_le_div_right (div_pos hε zero_lt_two),
-        mul_div_cancel _ (Ne.symm <| ne_of_lt (div_pos hε zero_lt_two)), one_div_div] at h
-      exact h
-    · -- 2.
-      rw [interior_eq_compl_closure_compl, Set.mem_compl_iff, Metric.mem_closure_iff, dist_zero_left]
-      push_neg
-      intro h
-      rcases h with ⟨ _, M, hM ⟩
-      use 1/M
-      refine ⟨ ?_, ?_ ⟩
-      ·
-        rw [gt_iff_lt, one_div]
-        exact inv_pos.mpr <| lt_of_lt_of_le (norm_pos_iff.mpr hXnonempty.some_mem.2) (hM hXnonempty.some hXnonempty.some_mem.1)
-      ·
-        intro b hb
-        rw [Set.mem_compl_iff, polarDual_mem_iff] at hb
-        push_neg at hb
-        rcases hb with ⟨ y, hy, hb ⟩
-        specialize hM y hy
-        have hnorminner: |inner y b| ≤ ‖y‖ * ‖b‖ := by
-          exact abs_real_inner_le_norm y b
-        rw [abs_of_pos (lt_trans zero_lt_one hb)] at hnorminner
-        have : (1:ℝ) ≤ ‖y‖ * ‖b‖ := le_trans (le_of_lt hb) hnorminner
-        have hynezero: y ≠ 0 := by
-          rintro rfl
-          rw [norm_zero, zero_mul] at this
-          exact not_lt_of_le this zero_lt_one
-        rw [← norm_pos_iff] at hynezero
-        apply le_trans (div_le_div (le_of_lt <| lt_trans zero_lt_one hb) (le_of_lt hb) hynezero hM)
-        apply div_le_of_nonneg_of_le_mul (le_of_lt hynezero)
-        apply (mul_nonneg_iff_of_pos_left hynezero).mp (le_trans (zero_le_one) this)
-        rw [mul_comm]
-        exact hnorminner
-        done
-  ·
-    rw [Set.not_nonempty_iff_eq_empty, Set.diff_eq_empty, Set.subset_singleton_iff_eq] at hXempty
-    cases' hXempty with hXempty hX0
+lemma zero_mem_interior_polarDual_iff_compact [FiniteDimensional ℝ E] {X : Set E}
+  (hXcl : IsClosed X) : 0 ∈ interior (polarDual X) ↔ IsCompact X := by
+  suffices (X \ {0}).Nonempty → (0 ∈ interior (polarDual X) ↔ IsCompact X) by
+    cases' (em (X \ {0}).Nonempty) with hXnonempty hXempty
     ·
-      rw [hXempty, polarDual_empty, interior_univ]
-      exact ⟨ fun _ => isCompact_empty, fun _ => trivial ⟩
+      exact this hXnonempty
     ·
-      rw [hX0, polarDual_zero, interior_univ]
-      exact ⟨ fun _ => isCompact_singleton, fun _ => trivial ⟩
-    done
+      rw [Set.not_nonempty_iff_eq_empty, Set.diff_eq_empty,
+        Set.subset_singleton_iff_eq] at hXempty
+      cases' hXempty with hXempty hX0
+      ·
+        rw [hXempty, polarDual_empty, interior_univ]
+        exact ⟨ fun _ => isCompact_empty, fun _ => trivial ⟩
+      ·
+        rw [hX0, polarDual_zero, interior_univ]
+        exact ⟨ fun _ => isCompact_singleton, fun _ => trivial ⟩
+      done
 
-lemma polarDual_compact_if [FiniteDimensional ℝ E] {X : Set E} (hXcl : IsClosed X) (hXcv : Convex ℝ X) :
-  0 ∈ interior X → IsCompact (polarDual X) := by
-  intro h
-  rw [← doublePolarDual_self hXcl hXcv (interior_subset h), compact_polarDual_iff (polarDual_closed _)] at h
-  exact h
-  done
+  intro hXnonempty
+  rw [Metric.isCompact_iff_isClosed_bounded, isBounded_iff_forall_norm_le]
+  constructor
+  · -- 1.
+    intro h
+    have : IsOpen (interior (polarDual X)) := isOpen_interior
+    rw [Metric.isOpen_iff] at this
+    rcases this 0 h with ⟨ ε, hε, hball ⟩; clear this h
+    refine ⟨ hXcl, 2/ε, fun x hx => ?_ ⟩
+
+    cases' em (x = 0) with hx0 hx0
+    ·
+      rw [hx0, norm_zero]
+      exact div_nonneg zero_le_two (le_of_lt hε)
+      done
+
+    have := subset_trans hball (interior_subset) ; clear hball
+    rw [polarDual_comm] at this
+    specialize this hx
+    simp only [polarDual_mem_iff, Metric.mem_ball, dist_zero_right] at this
+    let u : E := (ε/2/(norm x)) • x
+
+    have hu : ‖u‖ < ε := by
+      rw [norm_smul, norm_div, Real.norm_eq_abs, norm_norm,
+        div_mul_cancel _ (norm_ne_zero_iff.mpr hx0), abs_of_pos (half_pos hε)]
+      exact half_lt_self hε
+
+    specialize this u hu
+    rwa [real_inner_smul_left, real_inner_self_eq_norm_mul_norm, ←mul_assoc,
+    div_mul_cancel _ (norm_ne_zero_iff.mpr hx0), ← le_div_iff' (div_pos hε zero_lt_two),
+      one_div_div] at this
+
+  · -- 2.
+    rw [interior_eq_compl_closure_compl, Set.mem_compl_iff, Metric.mem_closure_iff,
+      dist_zero_left]
+    push_neg
+    intro h
+    rcases h with ⟨ _, M, hM ⟩
+    use 1/M
+    refine ⟨ ?_, ?_ ⟩
+    ·
+      rw [gt_iff_lt, one_div, inv_pos]
+      refine lt_of_lt_of_le (norm_pos_iff.mpr hXnonempty.some_mem.2) ?_
+      exact hM hXnonempty.some hXnonempty.some_mem.1
+    ·
+      intro b hb
+      rw [Set.mem_compl_iff, polarDual_mem_iff] at hb
+      push_neg at hb
+      rcases hb with ⟨ y, hy, hb ⟩
+      specialize hM y hy
+      have hnorminner: |inner y b| ≤ ‖y‖ * ‖b‖ := by
+        exact abs_real_inner_le_norm y b
+      rw [abs_of_pos (lt_trans zero_lt_one hb)] at hnorminner
+      have : (1:ℝ) ≤ ‖y‖ * ‖b‖ := le_trans (le_of_lt hb) hnorminner
+      have hynezero: y ≠ 0 := by
+        rintro rfl
+        rw [norm_zero, zero_mul] at this
+        exact not_lt_of_le this zero_lt_one
+      rw [← norm_pos_iff] at hynezero
+      apply le_trans (div_le_div ((le_of_lt <| lt_trans zero_lt_one hb)) (le_of_lt hb) hynezero hM)
+      apply div_le_of_nonneg_of_le_mul (le_of_lt hynezero)
+      apply (mul_nonneg_iff_of_pos_left hynezero).mp (le_trans (zero_le_one) this)
+      rw [mul_comm]
+      exact hnorminner
+      done

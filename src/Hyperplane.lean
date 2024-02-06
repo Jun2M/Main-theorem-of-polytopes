@@ -62,10 +62,9 @@ lemma hyperplane_affineClosed (H : PolarFunctional E) :
 
 def le_halfspace (H : PolarFunctional E) : Set E := H.f.1 ⁻¹' {x | x ≤ H.α}
 
-variable [CompleteSpace E]
 
-theorem le_halfspace_inj : Function.Injective (@le_halfspace E _ _) := by
-    intro H1 H2 h
+theorem le_halfspace_inj [CompleteSpace E] : Function.Injective (@le_halfspace E _ _) := by
+    intro H1 H2 (h : H1.le_halfspace = H2.le_halfspace)
     cases' H1 with f1 α1
     cases' H2 with f2 α2
     simp only [le_halfspace] at h
@@ -86,7 +85,7 @@ theorem le_halfspace_inj : Function.Injective (@le_halfspace E _ _) := by
         LinearIsometryEquiv.apply_symm_apply]
 
       change p1 ≠ p2 at h
-      have hinnerlt1 := (inner_lt_one_iff_real_of_norm_one hp1norm hp2norm).mpr h
+      have hinnerlt1 : ⟪p1, p2⟫_ℝ < 1 := (inner_lt_one_iff_real_of_norm_one hp1norm hp2norm).mpr h
       let v := p1 - p2
       let v' := (norm v)⁻¹ • v
 
@@ -161,7 +160,7 @@ theorem le_halfspace_inj : Function.Injective (@le_halfspace E _ _) := by
       exact ⟨ le_refl _, not_le_of_gt <| lt_of_le_of_ne hmax2 h ⟩
     done
 
-lemma le_halfspace_eq_iff (H1 H2 : PolarFunctional E) :
+lemma le_halfspace_eq_iff [CompleteSpace E] (H1 H2 : PolarFunctional E) :
   H1.le_halfspace = H2.le_halfspace ↔ H1 = H2 := by
   exact ⟨ λ h => le_halfspace_inj h, λ h => h ▸ rfl ⟩
 
@@ -216,7 +215,7 @@ lemma translation_le_halfspace_mem_iff (H : PolarFunctional E) (x : E) :
   rw [translation_le_halfspace, Set.image_add_right, Set.mem_preimage, sub_eq_add_neg]
   done
 
-lemma translation_inj (x : E) :
+lemma translation_inj [CompleteSpace E] (x : E) :
   Function.Injective (·.translation x : PolarFunctional E → PolarFunctional E ) := by
   intro H1 H2 h
   rw [← le_halfspace_eq_iff] at h ⊢
@@ -227,7 +226,7 @@ lemma translation_inj (x : E) :
   done
 
 
-lemma frontier_le_Halfspace_eq_Hyperplane {H : PolarFunctional E} :
+lemma frontier_le_Halfspace_eq_Hyperplane [CompleteSpace E] {H : PolarFunctional E} :
   frontier (H.le_halfspace) = H.hyperplane := by
   rw [H.le_halfspace_def, ContinuousLinearMap.frontier_preimage _ (unitSphereDual_surj H.f),
     ← Set.Iic, frontier_Iic' (Set.nonempty_Ioi)]
