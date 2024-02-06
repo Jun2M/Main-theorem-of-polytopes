@@ -567,7 +567,7 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] [Nontrivial E] :
   (∀ (S : Set E) [Fact S.Finite], ∃ (H_ : Set (PolarFunctional E)),
     Fact H_.Finite ∧ Hpolytope H_ = Vpolytope S) ∧
   ∀ {H_ : Set (PolarFunctional E)} [Fact H_.Finite], IsCompact (Hpolytope H_) →
-  ∃ (S : Set E) (hS : S.Finite), Hpolytope H_ = Vpolytope S := by
+  ∃ (S : Set E) (hS : Fact S.Finite), Hpolytope H_ = Vpolytope S := by
   constructor
   · -- 1.
     intro S hS
