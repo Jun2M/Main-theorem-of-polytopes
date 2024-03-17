@@ -1,5 +1,6 @@
 import Mathlib.Analysis.Convex.Intrinsic
 import Mathlib.Analysis.InnerProductSpace.Orthogonal
+import Mathlib.Data.Vector.Mem
 
 
 open Pointwise
@@ -183,10 +184,48 @@ def Matrix.rowOp_pivot {R : Type*} [LinearOrderedField R] {m n : ℕ} (A : Matri
   let v : Fin n → R := (A i x)⁻¹ • A i
   λ j => if j = i then v else (- A j x) • v + A j
 
-def List.fin_range (n : ℕ) : List (Fin n) :=
+def Nat.fin_list_range (n : ℕ) : List (Fin n) :=
   match n with
   | 0 => []
-  | Nat.succ m => 0 :: (List.fin_range m).map Fin.succ
+  | Nat.succ m => 0 :: (m.fin_list_range).map Fin.succ
+
+lemma Fin.mem_fin_list_range {n : ℕ} (i : Fin n) : i ∈ n.fin_list_range := by
+  induction n with
+  | zero => exact i.elim0
+  | succ n ih =>
+    match i with
+    | 0 => exact List.mem_cons_self _ _
+    | (mk (Nat.succ m) h) =>
+      have : m < n := by omega
+      let m' : Fin n := ⟨m, this⟩
+      unfold Nat.fin_list_range
+      apply List.mem_cons_of_mem
+      simp only [List.mem_map]
+      use m'
+      use ih m'
+      rfl
+  done
+
+def Vector.Listdrop {R : Type*} {n : ℕ} (m : ℕ) :
+  Vector R n → Vector R (n-m) :=
+  match m with
+  | 0 => id
+  | m+1 => fun v => ⟨ (v.tail.Listdrop m).1, by simp; omega ⟩
+
+
+-- lemma Vector.mem_ofFn {n : ℕ} {R : Type*} (f : Fin n → R) (x : R) :
+--   x ∈ (ofFn f).1 ↔ ∃ i, f i = x := by
+--   constructor
+--   · -- 1.
+--     intro h
+
+--     sorry
+--     done
+--   · -- 2.
+--     sorry
+--     done
+--   sorry
+--   done
 
 instance HasZero.Vector (n : ℕ) {R : Type*} [Zero R] : Zero (Vector R n) where
   zero := ⟨ List.replicate n 0, by simp ⟩

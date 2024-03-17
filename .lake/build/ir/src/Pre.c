@@ -1,6 +1,6 @@
 // Lean compiler output
 // Module: src.Pre
-// Imports: Init Mathlib.Analysis.Convex.Intrinsic Mathlib.Analysis.InnerProductSpace.Orthogonal
+// Imports: Init Mathlib.Analysis.Convex.Intrinsic Mathlib.Analysis.InnerProductSpace.Orthogonal Mathlib.Data.Vector.Mem
 #include <lean/lean.h>
 #if defined(__clang__)
 #pragma clang diagnostic ignored "-Wunused-parameter"
@@ -15,36 +15,39 @@ extern "C" {
 #endif
 lean_object* l_LinearOrderedSemifield_toSemifield___rarg(lean_object*);
 lean_object* l_CommRing_toNonUnitalCommRing___rarg(lean_object*);
+LEAN_EXPORT lean_object* l_Nat_fin__list__range(lean_object*);
 static lean_object* l_LinearEquiv_refl___at_AffineEquiv_VSubconst___spec__1___rarg___closed__1;
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___elambda__1___rarg(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_RingHom_id___at_AffineEquiv_VSubconst___spec__4___boxed(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___rarg(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_AffineIsometryEquiv_VSubconst(lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* l_List_mapTR_loop___at_List_fin__range___spec__1___boxed(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___elambda__1(lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l_List_mapTR_loop___at_Nat_fin__list__range___spec__1___boxed(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_AffineEquiv_VSubconst___rarg___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___boxed(lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_NonUnitalNonAssocSemiring_toDistrib___rarg(lean_object*);
 LEAN_EXPORT lean_object* l_AffineEquiv_VSubconst(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_HasZero_Vector(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_LinearMap_id___at_AffineEquiv_VSubconst___spec__2___rarg(lean_object*, lean_object*, lean_object*);
+lean_object* l_Vector_tail___rarg(lean_object*);
 LEAN_EXPORT lean_object* l_RingHom_id___at_AffineEquiv_VSubconst___spec__5(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___elambda__2___boxed(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Matrix_rowOp__pivot___rarg___lambda__2___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_Semiring_toNonAssocSemiring___rarg(lean_object*);
+LEAN_EXPORT lean_object* l_Vector_Listdrop(lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___elambda__2(lean_object*, lean_object*, lean_object*);
 lean_object* l_Pi_instAdd___elambda__1___rarg(lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_NonUnitalNonAssocCommRing_toNonUnitalNonAssocCommSemiring___rarg(lean_object*);
 LEAN_EXPORT lean_object* l_Matrix_rowOp__pivot(lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___rarg___boxed(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Matrix_rowOp__pivot___rarg___lambda__2(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter(lean_object*);
 LEAN_EXPORT lean_object* l_Matrix_rowOp__pivot___rarg___lambda__1___boxed(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_LinearEquiv_refl___at_AffineEquiv_VSubconst___spec__1(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Matrix_rowOp__pivot___rarg___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 lean_object* l_List_replicateTR___rarg(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_DistribMulActionHom_id___at_AffineEquiv_VSubconst___spec__3___boxed(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___elambda__1___boxed(lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* l_List_fin__range(lean_object*);
 LEAN_EXPORT lean_object* l_LinearEquiv_refl___at_AffineEquiv_VSubconst___spec__1___rarg___boxed(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst(lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_AffineEquiv_VSubconst___rarg(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
@@ -58,22 +61,25 @@ lean_object* l_MulActionHom_id___elambda__1___rarg___boxed(lean_object*);
 uint8_t lean_nat_dec_eq(lean_object*, lean_object*);
 lean_object* lean_nat_mod(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Matrix_rowOp__pivot___rarg(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
-LEAN_EXPORT lean_object* l_List_mapTR_loop___at_List_fin__range___spec__1(lean_object*, lean_object*, lean_object*);
 lean_object* l_id___rarg___boxed(lean_object*);
 lean_object* l_NormedAddCommGroup_toSeminormedAddCommGroup___rarg(lean_object*);
-LEAN_EXPORT lean_object* l_List_fin__range___boxed(lean_object*);
 static lean_object* l_RingHom_id___at_AffineEquiv_VSubconst___spec__4___closed__1;
 LEAN_EXPORT lean_object* l_Matrix_rowOp__pivot___rarg___lambda__1(lean_object*, lean_object*);
 lean_object* lean_nat_sub(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l_List_mapTR_loop___at_Nat_fin__list__range___spec__1(lean_object*, lean_object*, lean_object*);
 lean_object* l_List_reverse___rarg(lean_object*);
 LEAN_EXPORT lean_object* l_AffineIsometryEquiv_VSubconst___rarg(lean_object*, lean_object*, lean_object*, lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_LinearEquiv_refl___at_AffineEquiv_VSubconst___spec__1___rarg(lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l_Vector_Listdrop___rarg(lean_object*, lean_object*, lean_object*);
 static lean_object* l_DistribMulActionHom_id___at_AffineEquiv_VSubconst___spec__3___closed__1;
 LEAN_EXPORT lean_object* l_LinearMap_id___at_AffineEquiv_VSubconst___spec__2___rarg___boxed(lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter___rarg(lean_object*, lean_object*, lean_object*);
 lean_object* lean_nat_add(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_RingHom_id___at_AffineEquiv_VSubconst___spec__4(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_LinearMap_id___at_AffineEquiv_VSubconst___spec__2(lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_RingHom_id___at_AffineEquiv_VSubconst___spec__5___boxed(lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter___rarg___boxed(lean_object*, lean_object*, lean_object*);
+LEAN_EXPORT lean_object* l_Nat_fin__list__range___boxed(lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___elambda__2___rarg(lean_object*, lean_object*, lean_object*);
 LEAN_EXPORT lean_object* l_Equiv_VSubconst___elambda__1___rarg(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
 _start:
@@ -523,7 +529,7 @@ lean_dec(x_2);
 return x_10;
 }
 }
-LEAN_EXPORT lean_object* l_List_mapTR_loop___at_List_fin__range___spec__1(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
+LEAN_EXPORT lean_object* l_List_mapTR_loop___at_Nat_fin__list__range___spec__1(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
 _start:
 {
 if (lean_obj_tag(x_2) == 0)
@@ -575,7 +581,7 @@ goto _start;
 }
 }
 }
-LEAN_EXPORT lean_object* l_List_fin__range(lean_object* x_1) {
+LEAN_EXPORT lean_object* l_Nat_fin__list__range(lean_object* x_1) {
 _start:
 {
 lean_object* x_2; uint8_t x_3; 
@@ -589,9 +595,9 @@ x_5 = lean_nat_sub(x_1, x_4);
 x_6 = lean_nat_add(x_5, x_4);
 x_7 = lean_nat_mod(x_2, x_6);
 lean_dec(x_6);
-x_8 = l_List_fin__range(x_5);
+x_8 = l_Nat_fin__list__range(x_5);
 x_9 = lean_box(0);
-x_10 = l_List_mapTR_loop___at_List_fin__range___spec__1(x_5, x_8, x_9);
+x_10 = l_List_mapTR_loop___at_Nat_fin__list__range___spec__1(x_5, x_8, x_9);
 lean_dec(x_5);
 x_11 = lean_alloc_ctor(1, 2, 0);
 lean_ctor_set(x_11, 0, x_7);
@@ -606,21 +612,98 @@ return x_12;
 }
 }
 }
-LEAN_EXPORT lean_object* l_List_mapTR_loop___at_List_fin__range___spec__1___boxed(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
+LEAN_EXPORT lean_object* l_List_mapTR_loop___at_Nat_fin__list__range___spec__1___boxed(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
 _start:
 {
 lean_object* x_4; 
-x_4 = l_List_mapTR_loop___at_List_fin__range___spec__1(x_1, x_2, x_3);
+x_4 = l_List_mapTR_loop___at_Nat_fin__list__range___spec__1(x_1, x_2, x_3);
 lean_dec(x_1);
 return x_4;
 }
 }
-LEAN_EXPORT lean_object* l_List_fin__range___boxed(lean_object* x_1) {
+LEAN_EXPORT lean_object* l_Nat_fin__list__range___boxed(lean_object* x_1) {
 _start:
 {
 lean_object* x_2; 
-x_2 = l_List_fin__range(x_1);
+x_2 = l_Nat_fin__list__range(x_1);
 lean_dec(x_1);
+return x_2;
+}
+}
+LEAN_EXPORT lean_object* l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter___rarg(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
+_start:
+{
+lean_object* x_4; uint8_t x_5; 
+x_4 = lean_unsigned_to_nat(0u);
+x_5 = lean_nat_dec_eq(x_1, x_4);
+if (x_5 == 0)
+{
+lean_object* x_6; lean_object* x_7; lean_object* x_8; 
+x_6 = lean_unsigned_to_nat(1u);
+x_7 = lean_nat_sub(x_1, x_6);
+x_8 = lean_apply_1(x_3, x_7);
+return x_8;
+}
+else
+{
+lean_dec(x_3);
+lean_inc(x_2);
+return x_2;
+}
+}
+}
+LEAN_EXPORT lean_object* l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter(lean_object* x_1) {
+_start:
+{
+lean_object* x_2; 
+x_2 = lean_alloc_closure((void*)(l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter___rarg___boxed), 3, 0);
+return x_2;
+}
+}
+LEAN_EXPORT lean_object* l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter___rarg___boxed(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
+_start:
+{
+lean_object* x_4; 
+x_4 = l___private_src_Pre_0__Nat_fin__list__range_match__1_splitter___rarg(x_1, x_2, x_3);
+lean_dec(x_2);
+lean_dec(x_1);
+return x_4;
+}
+}
+LEAN_EXPORT lean_object* l_Vector_Listdrop___rarg(lean_object* x_1, lean_object* x_2, lean_object* x_3) {
+_start:
+{
+lean_object* x_4; uint8_t x_5; 
+x_4 = lean_unsigned_to_nat(0u);
+x_5 = lean_nat_dec_eq(x_2, x_4);
+if (x_5 == 0)
+{
+lean_object* x_6; lean_object* x_7; lean_object* x_8; lean_object* x_9; 
+x_6 = lean_unsigned_to_nat(1u);
+x_7 = lean_nat_sub(x_2, x_6);
+lean_dec(x_2);
+x_8 = lean_nat_sub(x_1, x_6);
+lean_dec(x_1);
+x_9 = l_Vector_tail___rarg(x_3);
+lean_dec(x_3);
+x_1 = x_8;
+x_2 = x_7;
+x_3 = x_9;
+goto _start;
+}
+else
+{
+lean_dec(x_2);
+lean_dec(x_1);
+return x_3;
+}
+}
+}
+LEAN_EXPORT lean_object* l_Vector_Listdrop(lean_object* x_1) {
+_start:
+{
+lean_object* x_2; 
+x_2 = lean_alloc_closure((void*)(l_Vector_Listdrop___rarg), 3, 0);
 return x_2;
 }
 }
@@ -635,6 +718,7 @@ return x_4;
 lean_object* initialize_Init(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Analysis_Convex_Intrinsic(uint8_t builtin, lean_object*);
 lean_object* initialize_Mathlib_Analysis_InnerProductSpace_Orthogonal(uint8_t builtin, lean_object*);
+lean_object* initialize_Mathlib_Data_Vector_Mem(uint8_t builtin, lean_object*);
 static bool _G_initialized = false;
 LEAN_EXPORT lean_object* initialize_src_Pre(uint8_t builtin, lean_object* w) {
 lean_object * res;
@@ -647,6 +731,9 @@ res = initialize_Mathlib_Analysis_Convex_Intrinsic(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 res = initialize_Mathlib_Analysis_InnerProductSpace_Orthogonal(builtin, lean_io_mk_world());
+if (lean_io_result_is_error(res)) return res;
+lean_dec_ref(res);
+res = initialize_Mathlib_Data_Vector_Mem(builtin, lean_io_mk_world());
 if (lean_io_result_is_error(res)) return res;
 lean_dec_ref(res);
 l_DistribMulActionHom_id___at_AffineEquiv_VSubconst___spec__3___closed__1 = _init_l_DistribMulActionHom_id___at_AffineEquiv_VSubconst___spec__3___closed__1();
