@@ -46,21 +46,63 @@ variable {R : Type*} [LinearOrderedField R] {m n : ℕ} (A : Matrix (Fin m) (Fin
 --   | 2 => 2
 -- )
 
-def lp : LinearProgram 3 2 ℚ where
-  objectiveVector := ![-3, -2]
+-- -- Some example from the internet
+-- def lp : LinearProgram 3 2 ℚ where
+--   minimize := false
+--   objectiveVector := ![3, 2]
+--   constraints := !![
+--     2, 1;
+--     2, 3;
+--     3, 1
+--   ]
+--   constraintRhs := ![18, 42, 24]
+--   constraintsNonzero := by
+--     intro i h
+--     have : (Matrix.of ![![2, 1], ![2, 3], ![3, 1]] i : Fin 2 → ℚ) 0 = 0 := by
+--       rw [h]
+--       rfl
+--     fin_cases i <;>
+--     simp at this
+
+-- -- Introductory Example p.57
+-- def lp : LinearProgram 3 2 ℚ where
+--   minimize := false
+--   objectiveVector := ![1, 1]
+--   constraints := !![
+--     -1, 1;
+--     1, 0;
+--     0, 1
+--   ]
+--   constraintRhs := ![1, 3, 2]
+--   constraintsNonzero := by
+--     intro i h
+--     have htry0: (Matrix.of ![![-1, 1], ![1, 0], ![0, 1]] i : Fin 2 → ℚ) 0 = 0 := by
+--       rw [h]
+--       rfl
+--     have htry1: (Matrix.of ![![-1, 1], ![1, 0], ![0, 1]] i : Fin 2 → ℚ) 1 = 0 := by
+--       rw [h]
+--       rfl
+--     fin_cases i <;>
+--     simp at htry0 htry1
+--     done
+
+-- Exception Handling: Unboundedness
+def lp : LinearProgram 2 2 ℚ where
+  minimize := false
+  objectiveVector := ![1, 0]
   constraints := !![
-    2, 1;
-    2, 3;
-    3, 1
+    1, -1;
+    -1, 1
   ]
-  constraintRhs := ![18, 42, 24]
+  constraintRhs := ![1, 2]
   constraintsNonzero := by
     intro i h
-    have : (Matrix.of ![![2, 1], ![2, 3], ![3, 1]] i : Fin 2 → ℚ) 0 = 0 := by
+    have htry0: (Matrix.of ![![1, -1], ![-1, 1]] i : Fin 2 → ℚ) 0 = 0 := by
       rw [h]
       rfl
     fin_cases i <;>
-    simp at this
+    simp at htry0
+    done
 
 def T  := lp.simplex_tableau
 def T1 := T.simplex_step
@@ -76,9 +118,9 @@ def T4 := T3.simplex_step
 #eval T1.vertex
 #eval T1.score
 
-#eval T2.A
-#eval T2.vertex
-#eval T2.score
+-- #eval T2.A
+-- #eval T2.vertex
+-- #eval T2.score
 
 
 -- #eval T3.A
@@ -89,8 +131,8 @@ def T4 := T3.simplex_step
 -- #eval T4.vertex
 -- #eval T4.score
 
-#eval T.simplex_recur.A
-#eval T.simplex_recur.vertex
-#eval T.simplex_recur.score
+-- #eval T.simplex_recur.A
+-- #eval T.simplex_recur.vertex
+-- #eval T.simplex_recur.score
 
 -- #eval (List.range 6).filter (λ x => ∀ ix ∈ (⟨[ (0, 0), (1, 4), (2, 5) ], by simp⟩ : Vector (Fin 3 × Fin 7) 3).1, ix.2 ≠ x)

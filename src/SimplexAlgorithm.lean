@@ -2,10 +2,9 @@ import src.MainTheorem
 import Mathlib.Analysis.Convex.Cone.Proper
 import Mathlib.LinearAlgebra.Matrix.FiniteDimensional
 
-open Classical
 
 structure LinearProgram (p d : ℕ+) (R : Type*) [LinearOrderedField R]  where
-  maximize : Bool := true
+  minimize : Bool := true
   objectiveVector : (Fin d) → R
   constraints : Matrix (Fin p) (Fin d) R
   constraintRhs : (Fin p) → R
@@ -19,11 +18,13 @@ structure Tableau (p d : ℕ+) (R : Type*) [LinearOrderedField R] where
   A : Matrix (Fin (p+1)) (Fin (p+d+2)) R
   basic : (Fin (p+1) → Fin (p+d+2))
 
+-- Note the slack variables are the First p columns of the tableau
+-- The First row is the objective function
 def simplex_tableau {p d : ℕ+} {R : Type*} [LinearOrderedField R] (lp : LinearProgram p d R) :
   Tableau p d R := by
   let AwithObjective : Matrix (Fin (p+1)) (Fin d) R :=
     λ i => if h : i = 0 then
-      if !lp.maximize then -lp.objectiveVector else lp.objectiveVector
+      if lp.minimize then -lp.objectiveVector else lp.objectiveVector
     else
       lp.constraints (i.pred h)
 
@@ -47,7 +48,7 @@ def simplex_step : Tableau p d R := by
 
   -- Decide which column to pivot on
   let AvailableColumns := (List.fin_range (p+d+2)).filter
-    (λ x => x ∉ (Set.range T.basic) ∧ x ≠ Fin.last (p+d+1) ∧ T.A 0 x < 0)
+    (λ x => T.A 0 x > 0)
   if h : AvailableColumns = [] then exact T else
   let pivot_col? : Option (Fin (p+d+2)) := AvailableColumns.argmax (T.A 0 ·)
   let pivot_col : Fin (p+d+2) := pivot_col?.get (by
@@ -58,11 +59,12 @@ def simplex_step : Tableau p d R := by
   )
 
   -- Decide which row to pivot on
-  let AvailableRows := ((List.fin_range (p+1)).tail.filter (T.A · pivot_col ≠ 0))
+  let AvailableRows := ((List.fin_range (p+1)).tail.filter (0 < T.A · pivot_col))
   let row_eval := λ i : Fin (p+1) => T.A i (Fin.last (p+d+1)) / T.A i pivot_col
   let pivot_row? : Option (Fin (p+1)) := AvailableRows.argmin row_eval
   let pivot_row : Fin (p+1) := pivot_row?.get (by
-    -- We won't pick an all zero column to pivot on, right?
+    -- UNBOUNDED
+
     sorry
   )
 
@@ -75,7 +77,7 @@ def simplex_step : Tableau p d R := by
   have := List.argmin_mem this
   rw [List.mem_filter] at this
   simp at this
-  exact this.2
+  exact ne_of_gt this.2
   done
 
 def score_vertex : Vector R (p+d+1) := by
@@ -89,7 +91,7 @@ def score : R := (score_vertex T).head
 
 def stop_condition : Bool := by
   let v := (Vector.ofFn (T.A 0)).tail
-  exact v.1.all (0 ≤ ·)
+  exact v.1.all (0 ≥ ·)
 
 end Tableau
 end LinearProgram
@@ -102,7 +104,7 @@ def LinearProgram.Tableau.simplex_recur {R : Type*} [LinearOrderedField R] {p d 
   else
     T
 
-  termination_by -T.score
+  termination_by T.score
   decreasing_by
     simp_wf  -- oof
     sorry
