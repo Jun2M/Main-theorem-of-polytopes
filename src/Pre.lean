@@ -177,3 +177,16 @@ def AffineSubspace.direction_subset_subset {k : Type u_1} {V : Type u_2} {P : Ty
   S -ᵥ T ⊆ Q.direction  := by
   rintro x ⟨ a, b, haS, hbT, rfl ⟩
   exact AffineSubspace.vsub_mem_direction (hS b) (hT hbT)
+
+def Matrix.rowOp_pivot {R : Type*} [LinearOrderedField R] {m n : ℕ} (A : Matrix (Fin m) (Fin n) R) (i : Fin m) (x : Fin n) (_h_ : A i x ≠ 0) :
+  Matrix (Fin m) (Fin n) R :=
+  let v : Fin n → R := (A i x)⁻¹ • A i
+  λ j => if j = i then v else (- A j x) • v + A j
+
+def List.fin_range (n : ℕ) : List (Fin n) :=
+  match n with
+  | 0 => []
+  | Nat.succ m => 0 :: (List.fin_range m).map Fin.succ
+
+instance HasZero.Vector (n : ℕ) {R : Type*} [Zero R] : Zero (Vector R n) where
+  zero := ⟨ List.replicate n 0, by simp ⟩
