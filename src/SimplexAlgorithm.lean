@@ -19,12 +19,19 @@ structure Tableau (n m : ℕ+) (R : Type*) [LinearOrderedField R] where
   basic : (Fin (n+1) → Fin m)
 
 structure result {p d : ℕ+} {R : Type*} [LinearOrderedField R] (lp : LinearProgram p d R) where
+  basic : Fin (p+1) → Fin (p+d+1) := 0
   value_vertex : Option (Vector ((Fin 2 → R)) (d+1))
   value : Option ((Fin 2 → R)) := value_vertex >>= (·.head)
   score : Option ((Fin 2 → R)) := if lp.minimize then value else value.map (-·)
   vertex : Option (Vector ((Fin 2 → R)) (d+1-1)) := value_vertex >>= (·.tail)
   hValue : value = value_vertex >>= (·.head) := by rfl
   hVertex : vertex = value_vertex >>= (·.tail) := by rfl
+
+def result.fail {p d : ℕ+} {R : Type*} [LinearOrderedField R] (lp : LinearProgram p d R) : result lp :=
+  { value_vertex := none }
+
+def origin_feasible {p d : ℕ+} {R : Type*} [LinearOrderedField R] (lp : LinearProgram p d R) : Bool :=
+  (Vector.ofFn lp.constraintRhs).toList.all (0 ≤ ·)
 
 def Tableau.pivoting {n m : ℕ+} {R : Type*} [LinearOrderedField R] (T : Tableau n m R)
   (pivot_row : Fin (n+1)) (pivot_col : Fin m) (_h_ : T.A pivot_row pivot_col ≠ 0) :
@@ -40,14 +47,14 @@ def Tableau.return {n p d : ℕ+} {R : Type*} [LinearOrderedField R] (lp : Linea
   let f : Fin (n+1) → (Fin _ → (Fin 2 → R)) := λ i => Pi.single (T.basic i) (T.Rhs i)
   let f1 : Fin (p+d+1) → (Fin 2 → R) := Finset.univ.sum f
   let f2 : Fin (d+1) → (Fin 2 → R) := λ i => if i = 0 then f1 i else f1 (i + p)
-  exact { value_vertex := some <| Vector.ofFn f2 }
+  exact { basic := λ i => T.basic i, value_vertex := some <| Vector.ofFn f2 }
   done
 
 variable {p d : ℕ+} {R : Type*} [LinearOrderedField R]
 
 -- Note the slack variables are the First p+1 columns of the tableau
 -- The First row is the objective function
-def simplex_tableau (lp : LinearProgram p d R) :
+def phase2_tableau (lp : LinearProgram p d R) :
   Tableau p (p+d+1) R := by
   let AwithObjective : Matrix (Fin (p+1)) (Fin d) R :=
     λ i => if h : i = 0 then
@@ -68,13 +75,18 @@ def simplex_tableau (lp : LinearProgram p d R) :
   exact ⟨ A, (λ i => if h : i = 0 then 0 else
     λ j => if j = 0 then lp.constraintRhs (i.pred h) else 0), λ i => i ⟩
 
+-- def phase1_tableau (lp : LinearProgram p d R) :
+--   Tableau (p+1) (p+p+d+1) R := by
+--   let T := phase2_tableau lp
+
+
 end LinearProgram
 
 def LinearProgram.Tableau.Simplex_inner {p d n : ℕ+} {R : Type*} [LinearOrderedField R] (lp : LinearProgram p d R)
   (T : Tableau n (p+d+1) R) :
   lp.result :=
 
-  let AvailableColumns := (p+d+1:ℕ).fin_list_range.filter (λ i => 0 < i ∧ T.A 0 i > 0)
+  let AvailableColumns := (p+d+1:ℕ).fin_list_range.filter (λ i => 0 < i ∧ 0 < T.A 0 i)
   if hCol : AvailableColumns = [] then
     T.return lp
   else
@@ -85,7 +97,7 @@ def LinearProgram.Tableau.Simplex_inner {p d n : ℕ+} {R : Type*} [LinearOrdere
   exact hCol hNone
   )
 
-  let AvailableRows := (n+1:ℕ).fin_list_range.tail.filter (0 < T.A · pivot_col)
+  let AvailableRows := (n+1:ℕ).fin_list_range.tail.filter (λ i => 0 < i ∧ 0 < T.A i pivot_col)
   if hRow : AvailableRows = [] then
     let T : Tableau (n+1) (p+d+1) R := {
       A :=      λ i => if i ≠ Fin.last (n+1) then T.A i else Pi.single pivot_col 1,
@@ -110,7 +122,7 @@ def LinearProgram.Tableau.Simplex_inner {p d n : ℕ+} {R : Type*} [LinearOrdere
     have := List.argmin_mem this
     rw [List.mem_filter] at this
     simp at this
-    exact ne_of_gt this.2
+    exact ne_of_gt this.2.2
   )
   by exact T.Simplex_inner lp
   termination_by T.Rhs 0
@@ -118,8 +130,14 @@ def LinearProgram.Tableau.Simplex_inner {p d n : ℕ+} {R : Type*} [LinearOrdere
 
 def LinearProgram.Tableau.Simplex {p d : ℕ+} {R : Type*} [LinearOrderedField R] (lp : LinearProgram p d R) :
   lp.result :=
-  let T := lp.simplex_tableau
-  T.Simplex_inner lp
+  lp.phase2_tableau.Simplex_inner lp
+  -- if lp.origin_feasible then
+  --   lp.simplex_tableau.Simplex_inner lp
+  -- else
+  --   let iT := lp.initial_tableau
+  --   let res2 := iT.Simplex_inner lp
+
+
 
 -- def rows : Set (Fin d → ℝ) :=
 --   Set.range lp.constraints

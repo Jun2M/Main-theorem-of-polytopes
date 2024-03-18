@@ -6,6 +6,7 @@ import Mathlib.Data.Matrix.Notation
 -- import Mathlib
 import src.SimplexAlgorithm
 
+
 variable {R : Type*} [LinearOrderedField R] {m n : ℕ} (A : Matrix (Fin m) (Fin n) R)
 
 -- def rowOp_smul  (i : Fin m) (c : R) :
@@ -35,23 +36,23 @@ variable {R : Type*} [LinearOrderedField R] {m n : ℕ} (A : Matrix (Fin m) (Fin
 --   A.rowOp_smul_add (- A j x) i j
 
 
--- Some example from the internet
-def lp : LinearProgram 3 2 ℚ where
-  minimize := false
-  objectiveVector := ![3, 2]
-  constraints := !![
-    2, 1;
-    2, 3;
-    3, 1
-  ]
-  constraintRhs := ![18, 42, 24]
-  constraintsNonzero := by
-    intro i h
-    have : (Matrix.of ![![2, 1], ![2, 3], ![3, 1]] i : Fin 2 → ℚ) 0 = 0 := by
-      rw [h]
-      rfl
-    fin_cases i <;>
-    simp at this
+-- -- Some example from the internet
+-- def lp : LinearProgram 3 2 ℚ where
+--   minimize := false
+--   objectiveVector := ![3, 2]
+--   constraints := !![
+--     2, 1;
+--     2, 3;
+--     3, 1
+--   ]
+--   constraintRhs := ![18, 42, 24]
+--   constraintsNonzero := by
+--     intro i h
+--     have : (Matrix.of ![![2, 1], ![2, 3], ![3, 1]] i : Fin 2 → ℚ) 0 = 0 := by
+--       rw [h]
+--       rfl
+--     fin_cases i <;>
+--     simp at this
 
 -- -- Introductory Example p.57
 -- def lp : LinearProgram 3 2 ℚ where
@@ -112,25 +113,55 @@ def lp : LinearProgram 3 2 ℚ where
 --     done
 
 -- -- Exception Handling: Infeasibility
--- def lp : LinearProgram 2 2 ℚ where
+-- def lp : LinearProgram 2 3 ℚ where
 --   minimize := false
---   objectiveVector := ![1, 0]
+--   objectiveVector := ![1, 2, 0]
 --   constraints := !![
---     1, -1;
---     -1, 1
+--     1, 3, 1;
+--     0, 2, 1
 --   ]
---   constraintRhs := ![1, -1]
+--   constraintRhs := ![4, 2]
 --   constraintsNonzero := by
 --     intro i h
---     have htry0: (Matrix.of ![![1, -1], ![-1, 1]] i : Fin 2 → ℚ) 0 = 0 := congr_fun h 0
+--     have htry0: (!![1, 3, 1; 0, 2, 1] i : Fin 3 → ℚ) 1 = 0 := congr_fun h 1
 --     fin_cases i <;>
 --     simp at htry0
 --     done
 
+-- infeasible origin
+def lp : LinearProgram 3 2 ℚ where
+  minimize := false
+  objectiveVector := ![1, 2]
+  constraints := !![
+    1, 1;
+    0, 1;
+    -1, -1
+  ]
+  constraintRhs := ![2, 1, -1]
+  constraintsNonzero := by
+    intro i h
+    have htry0: !![1, 1; 0, 1; -1, -1] i 1 = 0 := congr_fun h 1
+    fin_cases i <;>
+    simp at htry0
+    done
+
 def T  := lp.simplex_tableau
 def Res := LinearProgram.Tableau.Simplex lp
+#eval T.A
+#eval T.Rhs
 #eval Res.vertex
 #eval Res.score
+
+#eval lp.origin_feasible
+def iT := lp.initial_tableau
+#eval iT.A
+#eval iT.Rhs
+#eval iT.basic
+def Res1 := iT.Simplex_inner lp
+#eval Res1.basic
+#eval Res1.vertex
+#eval Res1.score
+
 
 -- def p : ℕ+ := 2
 -- def d : ℕ+ := 2
