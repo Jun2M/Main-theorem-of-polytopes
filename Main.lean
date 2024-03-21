@@ -9,9 +9,3 @@ axiom Quot.sound.{u} : ∀ {α : Sort u} {r : α → α → Prop} {a b : α},
   r a b → Quot.mk r a = Quot.mk r b
 -/
 
-
-axiom F : False
-
-example : 0 = 1 := by
-  exfalso
-  exact F
