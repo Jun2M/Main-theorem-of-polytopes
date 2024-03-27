@@ -40,7 +40,8 @@ lemma Set.mem_translation {α : Type} [AddGroup α] {S : Set α}  (x s : α) :
     exact ⟨s - x, h, by rw [sub_add_cancel]⟩
   done
 
-theorem Set.vsub_eq_sub {G : Type} [AddGroup G] (g1 g2 : Set G) : g1 -ᵥ g2 = g1 - g2 := rfl
+theorem Set.vsub_eq_sub {G : Type} [AddGroup G] (g1 g2 : Set G)
+  : g1 -ᵥ g2 = g1 - g2 := rfl
 
 lemma Set.sub_eq_neg_add {α : Type} [AddGroup α] (S : Set α) (x : α) :
   S - {x} = S + {(-x)} := by
@@ -57,11 +58,13 @@ lemma Set.neg_add_cancel_right' {α : Type} [AddGroup α] {S : Set α} (x : α) 
   simp only [sub_singleton, add_singleton, mem_image, exists_exists_and_eq_and, sub_add_cancel, exists_eq_right]
   done
 
-lemma interior_eq_compl_closure_compl [TopologicalSpace α] {s : Set α} : interior s = (closure sᶜ)ᶜ := by
+lemma interior_eq_compl_closure_compl [TopologicalSpace α] {s : Set α} :
+  interior s = (closure sᶜ)ᶜ := by
   rw [← compl_compl s, compl_compl sᶜ, interior_compl]
   done
 
-lemma Set.sInter_inter_comm {α : Type u_1} {s : Set (Set α)} (hs : s.Nonempty) {t : Set α} : ⋂₀ ((· ∩ t) '' s) = (⋂₀ s) ∩ t := by
+lemma Set.Nonempty.sInter_inter_comm {α : Type u_1} {s : Set (Set α)} (hs : s.Nonempty) {t : Set α} :
+  ⋂₀ ((· ∩ t) '' s) = (⋂₀ s) ∩ t := by
   ext x
   simp only [mem_sInter, mem_inter_iff, mem_singleton_iff, and_imp]
   constructor
@@ -81,29 +84,19 @@ lemma Set.sInter_inter_comm {α : Type u_1} {s : Set (Set α)} (hs : s.Nonempty)
     exact mem_inter (h.1 z hz) h.2
   done
 
-lemma Set.image_sInter {α : Type u_1} {β : Type u_2} {S : Set (Set α)} (hS : S.Nonempty) {f : α → β} (hf : f.Injective) :
-  f '' ⋂₀ S = ⋂ (s : Set α) (_ : s ∈ S), f '' s := by
-  apply subset_antisymm (image_sInter_subset S f)
+lemma Set.Nonempty.image_sInter {α β : Type*} {S : Set (Set α)} (hS : S.Nonempty)
+  {f : α → β} (hf : f.Injective) :
+  f '' ⋂₀ S = ⋂ s ∈ S, f '' s := by
+  refine subset_antisymm (image_sInter_subset S f) ?_
   intro y hy
-  have : f '' Nonempty.some hS ∈ range fun s => ⋂ (_ : s ∈ S), f '' s := by
-    refine ⟨Nonempty.some hS, ?_⟩
-    ext x
-    simp only [mem_iInter, hS.some_mem, mem_image, forall_true_left]
-    done
-
-  rcases hy (f '' hS.some) this with ⟨x, _, rfl⟩
+  simp_all
+  rcases hy hS.some hS.some_mem with ⟨x, _hxInhSsome_, rfl⟩
   refine ⟨x, ?_, rfl⟩
-  simp only [mem_iInter, mem_image] at hy
-  intro s hs
-  rcases hy s hs with ⟨z, hz, hzz⟩
-  convert hz
-  exact hf hzz.symm
+  intro s hsInS
+  rcases hy s hsInS with ⟨z, hzIns, hfzEqfx⟩
+  convert hzIns
+  exact hf hfzEqfx.symm
   done
-
--- lemma continuous_curry_right {α : Type u} {β : Type v} {γ : Type u_1} [TopologicalSpace α]
---   [TopologicalSpace β] [TopologicalSpace γ] {g : α × β → γ} (b : β) (h : Continuous g) :
---   Continuous (λ a => Function.curry g a b) := by
---   exact continuous_uncurry_right b h
 
 def Equiv.VSubconst (𝕜 : Type) {E P : Type} [Field 𝕜] [AddCommGroup E] [Module 𝕜 E] [AddTorsor E P] (x : P) :
   P ≃ E where
@@ -162,7 +155,8 @@ lemma AffineMap.preimage_convexHull {𝕜 : Type u_1} {E : Type u_2} {F : Type u
 
 def affineSpan_nontrivial (k : Type u_1) {V : Type u_2} {P : Type u_3} [Ring k] [AddCommGroup V] [Module k V] [AddTorsor V P] {s : Set P} (h : Nontrivial s):
   Nontrivial (affineSpan k s) := by
-  rcases Set.Subtype s (subset_affineSpan k s) with ⟨ s', hs', _ ⟩
+  have := @CanLift.prf (Set P) (Set {x // x ∈ affineSpan k s}) _ _ _ s (subset_affineSpan k s)
+  rcases this with ⟨ s', hs' ⟩
   rw [Set.nontrivial_coe_sort, ← hs'] at h
   exact Set.nontrivial_of_nontrivial <| Set.nontrivial_of_image _ _ h
 
@@ -178,6 +172,9 @@ def AffineSubspace.direction_subset_subset {k : Type u_1} {V : Type u_2} {P : Ty
   S -ᵥ T ⊆ Q.direction  := by
   rintro x ⟨ a, b, haS, hbT, rfl ⟩
   exact AffineSubspace.vsub_mem_direction (hS b) (hT hbT)
+
+
+
 
 def Matrix.rowOp_pivot {R : Type*} [LinearOrderedField R] {m n : ℕ} (A : Matrix (Fin m) (Fin n) R) (i : Fin m) (x : Fin n) (_h_ : A i x ≠ 0) :
   Matrix (Fin m) (Fin n) R :=
@@ -211,21 +208,6 @@ def Vector.Listdrop {R : Type*} {n : ℕ} (m : ℕ) :
   match m with
   | 0 => id
   | m+1 => fun v => ⟨ (v.tail.Listdrop m).1, by simp; omega ⟩
-
-
--- lemma Vector.mem_ofFn {n : ℕ} {R : Type*} (f : Fin n → R) (x : R) :
---   x ∈ (ofFn f).1 ↔ ∃ i, f i = x := by
---   constructor
---   · -- 1.
---     intro h
-
---     sorry
---     done
---   · -- 2.
---     sorry
---     done
---   sorry
---   done
 
 instance HasZero.Vector (n : ℕ) {R : Type*} [Zero R] : Zero (Vector R n) where
   zero := ⟨ List.replicate n 0, by simp ⟩

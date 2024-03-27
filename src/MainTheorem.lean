@@ -654,9 +654,9 @@ theorem MainTheoremOfPolytopes [FiniteDimensional ℝ E] [Nontrivial E] :
         exact affineSpan_nontrivial ℝ (Set.nontrivial_coe_sort.mpr hSnontrivial)
 
       refine ⟨ H_', hH_', ?_ ⟩
-      rw [Hpolytope_translation, hH_'12, hH_'2Span, Hpolytope, ← Set.sInter_inter_comm, Set.image_image,
+      rw [Hpolytope_translation, hH_'12, hH_'2Span, Hpolytope, ← Set.Nonempty.sInter_inter_comm, Set.image_image,
         Set.image_image, @Set.image_congr' _ _ _ _ (H_''1) (Halfspace.val_eq' SpanS.direction),
-        ← Set.image_image, Set.sInter_image, ← Set.image_sInter ?_ (Subtype.val_injective)]
+        ← Set.image_image, Set.sInter_image, ← Set.Nonempty.image_sInter ?_ (Subtype.val_injective)]
       change Subtype.val '' Hpolytope hH''1 + {s} = Vpolytope hS
       rw [hHV, Vpolytope, hS'eq]
       change Subtype.val '' ((AffineIsometryEquiv.toHomeomorph (AffineIsometryEquiv.VSubconst ℝ s')) '' (Subtype.val ⁻¹' (convexHull ℝ) S)) + {s} = Vpolytope hS

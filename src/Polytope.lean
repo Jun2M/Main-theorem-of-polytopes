@@ -1,4 +1,4 @@
-import «src».Polar
+import «src».Cutspace
 
 
 variable {E : Type} [NormedAddCommGroup E] [InnerProductSpace ℝ E] [CompleteSpace E]
@@ -21,12 +21,14 @@ lemma Compact_Vpolytope {S : Set E} (hS : S.Finite) :
 def Hpolytope {H_ : Set (Halfspace E)} (_ : H_.Finite) : Set E :=
   ⋂₀ (SetLike.coe '' H_)
 
-lemma Convex_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) : Convex ℝ (Hpolytope hH_) := by
+lemma Convex_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) :
+  Convex ℝ (Hpolytope hH_) := by
   apply convex_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
   exact Halfspace_convex Hi_
 
-lemma Closed_Hpolytope {H : Set (Halfspace E)} (hH_ : H.Finite) : IsClosed (Hpolytope hH_) := by
+lemma Closed_Hpolytope {H : Set (Halfspace E)} (hH_ : H.Finite) :
+  IsClosed (Hpolytope hH_) := by
   apply isClosed_sInter
   rintro _ ⟨ Hi_, _, rfl ⟩
   change IsClosed Hi_
@@ -59,7 +61,8 @@ lemma mem_Hpolytope {H_ : Set (Halfspace E)} (hH_ : H_.Finite) (x : E) :
     exact h
     done
 
-lemma empty_Hpolytope [Nontrivial E] : ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = ∅ := by
+lemma empty_Hpolytope [Nontrivial E] :
+  ∃ (H_ : Set (Halfspace E)) (hH_ : H_.Finite), Hpolytope hH_ = ∅ := by
   have h := exists_ne (0:E)
   rcases h with ⟨ x, hx ⟩
   let xhat := (norm x)⁻¹ • x
